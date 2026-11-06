@@ -18,3 +18,6 @@ A 3D arcade highway driving game built with Three.js in a single HTML file.
 
 ## Run
 Open `index.html` in any modern browser (needs an internet connection to load Three.js from a CDN).
+
+## YouTube Playables build
+The `playables/` folder is the bundle for YouTube Playables: `index.html` and a locally bundled `three.min.js` (no CDN or web fonts), the YouTube SDK calls (`firstFrameReady`, `gameReady`, pause/resume, score, saved best score). Zip the contents of that folder, with both files at the zip root, to submit it.

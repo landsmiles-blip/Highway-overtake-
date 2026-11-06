@@ -1008,20 +1008,79 @@
     return !obstacles.some(o=> nearestZoneIndex(o.x) === zoneIdx && Math.abs(o.z - z) < (halfLen + o.halfLen + MIN_GAP));
   }
 
+  // Would putting a vehicle of this size at (x, z) leave NO lane the player's
+  // car fits through within `windowLen` metres of road? Checked over a generous
+  // stretch so differing vehicle speeds can't line traffic up into a wall
+  // before the player arrives. Moving cars count at the lane they're heading to.
+  function wallIfAdded(skip, x, z, halfW, windowLen){
+    const blocked = [false,false,false];
+    const mark = (ox, oz, ohw) => {
+      if (Math.abs(oz - z) >= windowLen) return;
+      for (let l=0;l<3;l++) if (Math.abs(ox - zoneCenters[l]) < ohw + PLAYER_HALF_W + 0.1) blocked[l] = true;
+    };
+    for (const o of obstacles){ if (o !== skip) mark(o.changingLane ? o.targetX : o.x, o.z, o.halfW); }
+    mark(x, z, halfW);
+    return blocked[0] && blocked[1] && blocked[2];
+  }
+
+  // Can vehicle `o` safely move into lane `cl` right now? Refuses when moving
+  // traffic is beside/near it, a stationary hazard is just ahead in that lane,
+  // another car is merging into the same lane, the player is right there, or
+  // the move would wall off the whole road.
+  function laneIsClear(o, cl, wallWindow){
+    for (const other of obstacles){
+      if (other === o) continue;
+      if (other.lane !== cl && other.targetLane !== cl) continue;
+      const dz = other.z - o.z;                 // negative = other is ahead of o
+      const reach = o.halfLen + other.halfLen;
+      if (other.static){ if (dz < reach + 1 && dz > -(reach + 16)) return false; }
+      else if (Math.abs(dz) < reach + 6) return false;
+    }
+    if (cl === player.lane && Math.abs(player.z - o.z) < 14) return false;
+    if (wallIfAdded(o, laneCenters[cl], o.z, o.halfW, wallWindow || 40)) return false;
+    return true;
+  }
+
+  // Safety net at runtime: if every lane is blocked inside the same short
+  // stretch, let the front-most moving vehicle there speed up a little so it clears
+  // out of the stretch (stationary hazards can't move, moving traffic can).
+  let wallTimer = 0;
+  function resolveWalls(){
+    const W = 9;
+    for (const a of obstacles){
+      const blocked = [false,false,false], cluster = [];
+      for (const o of obstacles){
+        if (Math.abs(o.z - a.z) < W){
+          cluster.push(o);
+          for (let l=0;l<3;l++) if (Math.abs(o.x - zoneCenters[l]) < o.halfW + PLAYER_HALF_W + 0.05) blocked[l] = true;
+        }
+      }
+      if (blocked[0] && blocked[1] && blocked[2]){
+        let pick = null;
+        for (const o of cluster){ if (!o.static && (!pick || o.z < pick.z)) pick = o; } // front-most mover
+        if (pick) pick.hold = 2.5;
+      }
+    }
+  }
+
   function spawnObstacleAt(zoneIdx, k){
     const half = halfSizeOf(k);
     const z = player.z - (150 + Math.random()*20);
     if (!zoneHasRoom(zoneIdx, z, half.halfLen)) return; // avoid spawning inside/too close to existing traffic
 
-    const group = acquireVehicle(k);
     // Keep the vehicle inside the bounds of its own lane (accounting for its
     // own width) so a lane left empty is always a real, fully clear gap the
-    // player's car can drive through — wide vehicles (bus/van/SUV) can't
-    // drift into the neighboring lane the way a flat zoneJitter would allow.
+    // player's car can drive through.
     const laneMargin = 0.22;
     const maxJitter = Math.max(0, LANE_W/2 - half.halfW - laneMargin);
     const jitter = (Math.random()-0.5) * 2 * Math.min(zoneJitter, maxJitter);
     const x = clamp(zoneCenters[zoneIdx] + jitter, -DRIVABLE_HALF + half.halfW, DRIVABLE_HALF - half.halfW);
+    if (wallIfAdded(null, x, z, half.halfW, 40)) return; // never complete a wall across all lanes
+    // stationary hazards: never place one close behind/ahead of another in a different lane
+    // (two of them would form a narrow gate that passing traffic can jam in)
+    if (k.static && obstacles.some(o=> o.static && nearestZoneIndex(o.x) !== zoneIdx && Math.abs(o.z - z) < 26)) return;
+
+    const group = acquireVehicle(k);
     group.position.set(x, 0, z);
     group.rotation.z = 0;
 
@@ -1029,7 +1088,7 @@
     obstacles.push({
       id:idCounter++, group, x, z, halfW:half.halfW, halfLen:half.halfLen,
       passed:false, kindDef:k, static:!!k.static,
-      lane:zoneIdx, targetLane:zoneIdx, changingLane:false, targetX:x, changeCooldown:2 + Math.random()*3,
+      lane:zoneIdx, targetLane:zoneIdx, changingLane:false, targetX:x, changeCooldown:2 + Math.random()*3, retry:0, hold:0, stuckT:0,
       cruiseSpeed, currentSpeed:cruiseSpeed,
       lodNear:true, shadowOn:true
     });
@@ -1155,26 +1214,45 @@
     if(padTimer <= 0){ spawnPad(); padTimer = 120; }
 
     // ---- Traffic AI: lane-grouped car-following + lane changes -------
-    // Group moving vehicles by lane so each can react to the vehicle
-    // directly ahead of it (smooth accel/brake, safe following distance,
-    // and a lane change if it's stuck behind something slower).
+    // Every vehicle AND stationary hazard (cones/barriers) sits in its lane's
+    // list, so moving traffic brakes for them and changes lanes around them
+    // instead of driving through. A car mid lane-change is listed in both its
+    // old and new lane so followers react to it on either side.
     const laneGroups = [[],[],[]];
-    for(const o of obstacles){ if(!o.static) laneGroups[o.lane].push(o); }
+    for(const o of obstacles){
+      laneGroups[o.lane].push(o);
+      if(o.changingLane && o.targetLane !== o.lane) laneGroups[o.targetLane].push(o);
+    }
     laneGroups.forEach(g=> g.sort((a,b)=> a.z - b.z)); // smaller z = further ahead on the road
 
-    for(const group of laneGroups){
+    wallTimer -= dt;
+    if(wallTimer <= 0){ wallTimer = 0.2; resolveWalls(); }
+
+    for(let laneIdx=0; laneIdx<LANES; laneIdx++){
+      const group = laneGroups[laneIdx];
       for(let i=0;i<group.length;i++){
         const o = group[i];
+        if(o.static || o.lane !== laneIdx) continue; // statics never move; a merging car is only "driven" in its own lane
         const leader = i>0 ? group[i-1] : null;
-        let desiredSpeed = o.cruiseSpeed;
-        let blocked = false;
+        const base = o.hold > 0 ? o.cruiseSpeed*1.35 : o.cruiseSpeed;   // brief burst to clear a blocked stretch
+        if(o.hold > 0) o.hold -= dt;
+        let desiredSpeed = base;
+        let blocked = false, hazardAhead = false;
         if(leader){
           const gap = (o.z - leader.z) - (o.halfLen + leader.halfLen);
-          const safeGap = 3.2 + o.currentSpeed*0.4;
-          if(gap < safeGap){
-            const ratio = clamp(gap/safeGap, 0, 1);
-            desiredSpeed = Math.min(o.cruiseSpeed, Math.max(leader.currentSpeed*0.15, leader.currentSpeed*ratio));
-            blocked = gap < safeGap*0.85;
+          if(leader.static){
+            // stationary hazard ahead: slow early and smoothly, and look for a way around
+            const brakeDist = 8 + o.currentSpeed*o.currentSpeed/6;
+            if(gap < brakeDist) desiredSpeed = Math.min(base, Math.max(0, (gap - 2.0) * 0.9));
+            hazardAhead = gap < 32;
+            blocked = hazardAhead;
+          } else {
+            const safeGap = 3.2 + o.currentSpeed*0.4;
+            if(gap < safeGap){
+              const ratio = clamp(gap/safeGap, 0, 1);
+              desiredSpeed = Math.min(base, Math.max(leader.currentSpeed*0.15, leader.currentSpeed*ratio));
+              blocked = gap < safeGap*0.85;
+            }
           }
         }
         // smooth acceleration / braking — never an instant speed change
@@ -1183,20 +1261,24 @@
         else o.currentSpeed = Math.max(desiredSpeed, o.currentSpeed - BRAKE*dt);
         o.currentSpeed = Math.max(0, o.currentSpeed);
 
-        // occasionally attempt a lane change when meaningfully blocked
-        o.changeCooldown -= dt;
-        if(!o.changingLane && blocked && o.changeCooldown <= 0){
-          const candidates = [o.lane-1, o.lane+1].filter(l=> l>=0 && l<LANES);
-          for(const cl of candidates){
-            const clear = !obstacles.some(other=> other!==o && !other.static && other.lane===cl &&
-              Math.abs(other.z - o.z) < (o.halfLen + other.halfLen + 5));
-            const playerConflict = (cl === player.lane) && Math.abs(player.z - o.z) < 14;
-            if(clear && !playerConflict){
-              o.changingLane = true; o.targetLane = cl; o.targetX = laneCenters[cl];
+        // attempt a lane change when meaningfully blocked (retry quickly for a
+        // stationary hazard, rarely for ordinary slow traffic)
+        o.changeCooldown -= dt; o.retry -= dt;
+        // boxed in behind a stationary hazard for 2 s+: relax the long wall look-ahead (the runtime
+        // wall resolver still guards the immediate stretch) so the car can get around it
+        if(hazardAhead && o.currentSpeed < 0.6) o.stuckT += dt; else o.stuckT = 0;
+        const wantChange = blocked && (hazardAhead ? o.retry <= 0 : o.changeCooldown <= 0);
+        if(!o.changingLane && wantChange){
+          let moved = false;
+          for(const cl of [o.lane-1, o.lane+1]){
+            if(cl < 0 || cl >= LANES) continue;
+            if(laneIsClear(o, cl, o.stuckT > 2 ? 14 : 40)){
+              o.changingLane = true; o.targetLane = cl; o.targetX = laneCenters[cl]; moved = true;
               break;
             }
           }
-          o.changeCooldown = 5 + Math.random()*4;
+          if(hazardAhead){ o.retry = moved ? 4 : 0.6; if(moved) o.changeCooldown = 4; }
+          else o.changeCooldown = 5 + Math.random()*4;
         }
       }
     }
