@@ -49,16 +49,31 @@ async function phonePage(browser, w = 390, h = 844, dpr = 3) {
   const page = await ctx.newPage();
   page.errors = []; page.net = [];
   page.on('pageerror', e => page.errors.push(String(e)));
-  page.on('console', m => { if (m.type() === 'error') page.errors.push(m.text()); });
-  page.on('request', r => { const u = r.url(); if (!u.startsWith('file:') && !u.startsWith('data:') && !u.startsWith('blob:')) page.net.push(u); });
+  page.on('console', m => { if (m.type() === 'error') page.errors.push(m.text() + ' @ ' + m.location().url); });
+  page.on('request', r => { const u = r.url(); if (!u.startsWith('file:') && !u.startsWith('data:') && !u.startsWith('blob:') && !u.startsWith('http://127.0.0.1')) page.net.push(u); });
   return page;
 }
 
-// Normal mode: the file exactly as it is on disk.
-async function openReal(page) {
-  await page.goto('file:///' + PROTO.replace(/\\/g, '/'));
+// A tiny local web server, so sound files load the way they do online.
+let server = null, serverPort = 0;
+function serve() {
+  if (server) return Promise.resolve(serverPort);
+  const types = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json', '.ogg': 'audio/ogg', '.mp3': 'audio/mpeg' };
+  server = require('http').createServer((req, res) => {
+    const u = decodeURIComponent(req.url.split('?')[0]);
+    const f = u === '/gate-highway-prototype.html' ? PROTO : path.join(process.env.GH_ROOT || ROOT, u);
+    fs.readFile(f, (e, d) => { if (e) { res.writeHead(404); res.end(); } else { res.writeHead(200, { 'Content-Type': types[path.extname(f)] || 'application/octet-stream' }); res.end(d); } });
+  });
+  server.unref();
+  return new Promise(r => server.listen(0, '127.0.0.1', () => { serverPort = server.address().port; r(serverPort); }));
+}
+
+// Normal mode: the file exactly as it is on disk, served locally.
+async function openReal(page, query = '') {
+  const port = await serve();
+  await page.goto(`http://127.0.0.1:${port}/gate-highway-prototype.html${query}`);
   await page.addScriptTag({ content: BOT });
-  await page.waitForFunction(() => !!window.__gh);
+  await page.waitForFunction(() => !!window.__gh && !!window.__ghBooted);
 }
 
 // Fast mode: same file, shim added in memory only.
@@ -83,4 +98,4 @@ async function openFast(page, seed, patches = []) {
   await page.waitForFunction(() => !!window.__gh && !!window.__ff);
 }
 
-module.exports = { launch, phonePage, openReal, openFast, ROOT, PROTO };
+module.exports = { launch, phonePage, openReal, openFast, serve, ROOT, PROTO };
