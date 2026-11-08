@@ -25,7 +25,7 @@ const FAST_SHIM = `
   performance.now = function(){ return ff.now; };
   window.requestAnimationFrame = function(cb){ ff.cbs.push(cb); return 1; };
   const Real = THREE.WebGLRenderer;
-  THREE.WebGLRenderer = function(p){ const r = new Real(p); r.render = function(){}; return r; };
+  THREE.WebGLRenderer = function(p){ const r = new Real(Object.assign({ preserveDrawingBuffer: true }, p)); const draw = r.render.bind(r); r.render = function(s, c){ if (ff.draw) draw(s, c); }; return r; };
   ff.reseed = function(n){ seed = n >>> 0; };
   ff.step = function(dt){ ff.now += dt * 1000; const c = ff.cbs; ff.cbs = []; for (let i = 0; i < c.length; i++) c[i](ff.now); };
 })();

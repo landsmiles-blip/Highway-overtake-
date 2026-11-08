@@ -47,3 +47,22 @@ real engine, not from anyone's win rates.
 - This models the game with bots. No real player has been measured. Open challenge 6 stays open.
 - `gate-sim.js` is deliberately simple about traffic. Where it and the real engine differ,
   trust the real engine.
+
+## After the freeze (commit 323a9b6): what the real engine showed
+
+`results/real-engine.json` holds the real-game runs: casual levels 1-18 at 400 runs a level, everything else
+at 200. The first run was stopped by the system for low memory, then resumed with one browser and fewer runs.
+At 200 runs the margin is at most about 7 points either way. A batch in the resumed run logged one page error
+that I could not reproduce and did not capture the text of. Two later batches, and every run of the file as on
+disk, logged none.
+
+**Where gate-sim.js is wrong.** My own Node model is too kind early because its traffic is too simple.
+Average player, Node vs real: level 3 93% vs 69%, level 5 93% vs 67%, level 10 84% vs 70%, level 20 70% vs 71%.
+Use the real-engine numbers. Reaction time, read distance and hand speed changed nothing in the Node model.
+That says the model does not test them, not that they do not matter.
+
+**Bot limits.** These are bots with guessed profiles, not people. Even the `perfect` bot wall-fails up to 10%
+on levels 3-8, and I have not separated the game's cause from the bot's.
+
+Other scripts: `tools/playtest/checks.js` (frames, crash, smash), `traffic.js` (rates), `realtime.js`
+(frame rate, real clock), `myplay.js` (me deciding from drawn frames).
