@@ -15,7 +15,7 @@ const { launch, phonePage, openReal } = require('./lib');
   await page.screenshot({ path: path.join(out, '00-start.png') });
   const gl = await page.evaluate(() => { const c = document.createElement('canvas').getContext('webgl'); const e = c && c.getExtension('WEBGL_debug_renderer_info'); return e ? c.getParameter(e.UNMASKED_RENDERER_WEBGL) : 'unknown'; });
 
-  await page.click('#startBtn');
+  
   if (level > 1) await page.evaluate(n => window.__gh.setLevel(n), level);
   await page.evaluate(profile => {
     const bot = window.__botMake(profile); window.__rt = { dts: [], cars: [], masses: [], start: performance.now(), lanes: [] };

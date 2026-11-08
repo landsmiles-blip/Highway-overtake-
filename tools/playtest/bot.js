@@ -26,7 +26,6 @@
   };
   const LANE_W = 3.4, LANES = [-LANE_W, 0, LANE_W];
   const LOOK_S = 1.6;          // seconds of road ahead checked for cars
-  const HEAVIEST = 800;        // bus; at or above this no car can kill you
 
   function parse(label) {
     if (label === 'x2') return { kind: 'mul' };
@@ -104,7 +103,8 @@
 
       // cars: only cars the player noticed are steered round, and only while a
       // hit would kill. Past the heaviest car, drivers plough straight on.
-      if (mass < HEAVIEST) {
+      // at or above the heaviest car's threat, no car can kill you
+      if (mass < (g.maxThreat !== undefined ? g.maxThreat : 800)) {
         const look = spd * LOOK_S;
         const box = g.boxes, hw = box.hw, hl = box.hl;
         const cars = [];

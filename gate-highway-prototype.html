@@ -277,8 +277,15 @@
   #pauseScreen button:active{ transform:translateY(2px); }
   @media (pointer:coarse){
     #touchControls{ display:flex; }
-    #controlsHint{ display:none; }
   }
+  /* This hint used to be hidden on phones, so a phone player was never told the controls. */
+  #controlsHint{ color:#fff; font-weight:700; font-size:calc(19px * var(--ui-scale));
+    bottom:calc(150px * var(--ui-scale)); text-shadow:0 2px 6px rgba(0,0,0,.75); animation:hintPulse 1.1s ease-in-out infinite; }
+  #controlsHint.gone{ animation:none; }
+  @keyframes hintPulse{ 50%{ transform:scale(1.08); } }
+  #titleSplash{ position:absolute; top:17%; left:0; right:0; z-index:6; text-align:center; pointer-events:none;
+    font-family:'Orbitron',sans-serif; font-weight:800; font-size:calc(30px * var(--ui-scale)); letter-spacing:2px;
+    color:#fff; text-shadow:0 3px 10px rgba(0,0,0,.6); transition:opacity .5s ease; }
 </style>
 </head>
 <body>
@@ -345,7 +352,7 @@
   // ============================================================
   const QS = new URLSearchParams(location.search);
   const TEST = { dpr:QS.get('dpr'), shadow:QS.get('shadow'), aa:QS.get('aa'), mat:QS.get('mat'),
-                 scene:QS.get('scene'), fps:QS.get('fps'), bench:QS.get('bench') };
+                 scene:QS.get('scene'), fps:QS.get('fps'), bench:QS.get('bench'), size:QS.get('size') };
   if (TEST.mat === 'lambert' && typeof THREE !== 'undefined'){
     const Lambert = THREE.MeshLambertMaterial;
     THREE.MeshStandardMaterial = function(p){
@@ -400,10 +407,23 @@
 
   const BASE_FOV = 62;
   const camera = new THREE.PerspectiveCamera(BASE_FOV, innerWidth/innerHeight, 0.1, 500);
+  // A phone held upright sees a narrow slice of a three-lane road: the outer lanes
+  // and doors fell off the screen edge. Tall screens get a wider lens and a camera
+  // that follows the car further across, so every lane stays in the frame.
+  let baseFov = BASE_FOV, camFollow = 0.42;
+  function fitCamera(aspect){
+    // Wide screens are short, so gate numbers were tiny there: a tighter lens brings
+    // the road closer. Width is not the limit on those screens, height is.
+    const squeeze = aspect < 0.75 ? Math.min(1.3, 0.75 / aspect)
+                  : aspect > 1.4 ? Math.max(0.72, 1.4 / aspect) : 1;
+    baseFov = 2 * Math.atan(Math.tan(BASE_FOV * Math.PI / 360) * squeeze) * 180 / Math.PI;
+    camFollow = aspect < 0.75 ? 0.62 : 0.42;
+  }
 
   function resize(){
     const w = app.clientWidth, h = app.clientHeight;
     camera.aspect = w / h;
+    fitCamera(camera.aspect);
     camera.updateProjectionMatrix();
     renderer.setSize(w, h);
   }
@@ -1307,7 +1327,11 @@
   let barricade = null;
   let speed = 0, boostMult = 1, targetBoostMult = 1;
   let boostActive = false, boostTimeLeft = 0;
-  const BASE_SPEED = 9, MAX_SPEED_ABS = 30;
+  // Mumathai on the phone: "too slow". One number scales the whole game's speed.
+  // Level length scales with it, so a level still lasts about 30 seconds and gates
+  // still arrive at the same rate. Only the road goes by faster.
+  const SPEED_SCALE = 1.35;
+  const BASE_SPEED = 14, MAX_SPEED_ABS = 30 * SPEED_SCALE;
   const BOOST_DURATION = 2.6;
 
   let obstacles = [];
@@ -1364,8 +1388,10 @@
   function gatesForLevel(lv){
     const i = Math.min(LEVEL_ADD.length - 1, Math.max(0, lv - 1));
     const a = LEVEL_ADD[i], big = LEVEL_ADDBIG[i];
+    const m = Math.round(Math.sqrt(a * big) / 5) * 5;   // between the two, never equal to either
     return {
       add:    { label:'+' + fmtNum(a),   kind:'add', v:a,   good:true },
+      addMid: { label:'+' + fmtNum(m),   kind:'add', v:m,   good:true },
       addBig: { label:'+' + fmtNum(big), kind:'add', v:big, good:true },
       mul2:   { label:'x2',              kind:'mul', v:2,   good:true },
       // a flat subtraction is meaningless once mass is in the thousands,
@@ -1374,9 +1400,16 @@
     };
   }
 
+  const SMASH_COST = 0.06;     // share of a car's threat lost when ploughing through it. Small:
+                               // at 0.15 on a busy road, smashing drained you until cars killed you
+  const THREAT_K = 0.45;       // how heavy traffic gets, once it has fully ramped up, at the
+                               // wall. It scales down with progress: see levelPace
+  const TRAFFIC_BAND = 160;    // how far ahead traffic is kept, ending past the fog line
+  const GATE_CLEAR = 3.5;      // gap kept between traffic and a gate line. It was 7, which
+                               // deleted 11 to 32 cars a level and emptied the road
   const LEVELS = LEVEL_NEEDS.map(function(need, i){
     const lv = i + 1;
-    const speedCap = Math.min(MAX_SPEED_ABS, 18 + lv * 0.7);
+    const speedCap = Math.min(MAX_SPEED_ABS, (18 + lv * 0.7) * SPEED_SCALE);
     const gateCount = Math.round(10 + Math.min(4, (lv - 1) * 0.22));
     return {
       level: lv,
@@ -1384,17 +1417,28 @@
       speedCap: speedCap,
       lengthZ: Math.round(speedCap * 25.8),     // ~30 second levels
       gateCount: gateCount,
-      mulLine: lv <= 2 ? -1 : Math.round(gateCount * 0.66),   // the one x2 line
-      // a real highway is busy. v4 capped the road at 9 cars, which read as
-      // an empty road rather than a motorway.
-      spawnInt: lv <= 2 ? 1.5 : Math.max(0.45, 1.5 - (lv - 2) * 0.05),
-      maxCars: lv <= 2 ? 11 : Math.round(Math.min(34, 22 + lv * 0.7)),
-      seedCars: Math.round(Math.min(22, 12 + lv * 0.5)),
-      multiLane: lv <= 2 ? 0 : Math.min(0.42, 0.10 + (lv - 2) * 0.03),
-      redChance: lv <= 2 ? 0 : Math.min(0.45, 0.14 + lv * 0.02)
+      // One new thing per level, instead of everything at once on level 3, which made
+      // a cliff. Measured one at a time in sim/results/baseline/level3-ablation.json:
+      // starting traffic did the most damage, and the x2 line actually helps.
+      //   3 x2 line and first real crashes | 4 red doors | 5 denser start
+      //   6 two cars side by side | 7 barriers | 8+ everything builds slowly
+      mulLine: lv <= 2 ? -1 : Math.round(gateCount * 0.66),
+      forgiving: lv <= 2,
+      threatScale: lv <= 2 ? 1 : (need / 1100) * THREAT_K * (0.6 + 0.4 * Math.min(1, (lv - 3) / 5)),
+      redChance: lv <= 3 ? 0 : Math.min(0.45, 0.12 + (lv - 4) * 0.024),
+      seedGap: lv <= 4 ? 14 : Math.max(8, 14 - (lv - 4) * 1.5),
+      seedDouble: lv <= 5 ? 0 : Math.min(0.9, 0.3 + (lv - 6) * 0.08),
+      startClear: lv <= 4 ? 70 : 34,
+      multiLane: lv <= 5 ? 0 : Math.min(0.42, 0.10 + (lv - 6) * 0.03),
+      // cars held in the stretch ahead of the player: a real highway is busy
+      // Mumathai: "this is a super highway". Busy from the first level.
+      bandCars: lv <= 2 ? 16 : Math.round(Math.min(30, 16 + (lv - 2) * 0.8)),
+      maxCars: lv <= 2 ? 28 : Math.round(Math.min(42, 28 + (lv - 2) * 0.8))
     };
   });
   function levelCfg(lv){ return LEVELS[Math.min(LEVELS.length - 1, Math.max(0, lv - 1))]; }
+  let linesTaken = 0;       // gate lines taken so far this level
+  function levelPace(cfg){ return Math.max(0.08, Math.min(1, (levelStartZ - player.z) / cfg.lengthZ)); }
   function multiLaneChance(lv){ return levelCfg(lv).multiLane; }
   let gateIndex = 0;        // which gate line of this level we are on
 
@@ -1426,8 +1470,16 @@
   //  Length growth is not free in gameplay terms: a longer car is harder to
   //  thread between traffic. That is deliberate. Growth should cost something.
   // ============================================================
-  const SZ_MIN = 0.60;
-  const SZ_W = 1.95, SZ_H = 2.70, SZ_L = 2.25;   // caps at ratio 2.5
+  //  v10: size demoted to a quiet cue, as Mumathai decided ("a garage, not a
+  //  balloon"). At the old caps the car hid the road and was cut off by the screen
+  //  edge, and the camera pulled back until gate numbers were tiny. Parts and looks
+  //  carry the reward now. These caps keep the car inside its lane. ?size=big
+  //  restores the old sizes for the side-by-side test in open challenge 4.
+  // ============================================================
+  const SIZE_BIG = TEST.size === 'big';
+  const SZ_MIN = SIZE_BIG ? 0.60 : 0.80;
+  const SZ_W = SIZE_BIG ? 1.95 : 1.28, SZ_H = SIZE_BIG ? 2.70 : 1.55, SZ_L = SIZE_BIG ? 2.25 : 1.40;   // caps at ratio 2.5
+  const SZ_OVER_H = SIZE_BIG ? 0.85 : 0.20, SZ_OVER_L = SIZE_BIG ? 0.40 : 0.08;
   const POP_TIME = 0.30;
   let popT = 0;
   let szW = SZ_MIN, szH = SZ_MIN, szL = SZ_MIN;
@@ -1442,8 +1494,8 @@
     if(r > 2.5){
       // past the top spec stage the car keeps growing UP and LONG, never wide
       const over = Math.min(1.4, (r - 2.5) / 5);
-      h += over * 0.85;
-      l += over * 0.40;
+      h += over * SZ_OVER_H;
+      l += over * SZ_OVER_L;
     }
     return { w:w, h:h, l:l };
   }
@@ -1486,11 +1538,11 @@
   function startLevel(){
     clearLevelObjects();
     const cfg = levelCfg(level);
-    mass = 100; distance = 0;
+    mass = 100; distance = 0; linesTaken = 0;
     massShown = 100; goalReached = false;
     carTier = -1; setCarTier(0, false);
     player.yaw = 0; camSpeedRatio = 0;
-    camera.fov = BASE_FOV; camera.updateProjectionMatrix();
+    camera.fov = baseFov; camera.updateProjectionMatrix();
     speed = BASE_SPEED; boostMult = 1; targetBoostMult = 1;
     boostActive = false; boostTimeLeft = 0;
     player.lane = 1; player.x = 0; player.targetX = 0; player.tilt = 0; player.z = 0;
@@ -1520,14 +1572,13 @@
       // half-lengths), so slots every 11 units is the tightest the placement
       // rules allow. That puts roughly 7 slots inside the visible stretch
       // instead of 4, and most slots hold two cars.
-      const teaching = level <= 2;
-      const slots = teaching ? 9 : Math.round(Math.min(20, 13 + level * 0.4));
-      const slotGap = teaching ? 22 : 11;
+      const slotGap = cfg.seedGap;
+      const slots = Math.round(190 / slotGap);
       for(let i = 0; i < slots; i++){
         // start the cluster close: a 30-unit clear strip in front of the car
         // read as an empty road for the first second of every level
-        const zz0 = (teaching ? -32 : -16) - i * slotGap - Math.random() * 5;
-        const inSlot = (!teaching && Math.random() < (0.55 + cfg.multiLane)) ? 2 : 1;
+        const zz0 = (slotGap > 20 ? -32 : -16) - i * slotGap - Math.random() * 5;
+        const inSlot = Math.random() < cfg.seedDouble ? 2 : 1;
         const usedLanes = [];
         for(let c = 0; c < inSlot; c++){
           for(let attempt = 0; attempt < 5; attempt++){
@@ -1537,7 +1588,7 @@
             if(usedLanes.indexOf(zone) >= 0) continue;
             // leave the starting lane clear for the first stretch so a player
             // who has not worked out the controls yet is not killed for it
-            if(zone === 1 && zz0 > -(teaching ? 70 : 34)) continue;
+            if(zone === 1 && zz0 > -cfg.startClear) continue;
             const half = halfSizeOf(k);
             const zz = zz0 + (c ? (Math.random() - 0.5) * 6 : 0);
             if(!zoneHasRoom(zone, zz, half.halfLen)) continue;
@@ -1731,7 +1782,9 @@
   const zoneJitter = LANE_W * 0.30;
   // How far ahead a clear lane is guaranteed. Smaller = busier road, less
   // reaction time. 26 units at ~18 u/s is about 1.4 seconds of warning.
-  const WALL_WINDOW = 26;
+  // A new car is refused if all three lanes would be blocked within this distance.
+  // At 26 it refused most cars and kept the road thin. 12 still leaves a way through.
+  const WALL_WINDOW = 12;
 
   function rnd(n){ return Math.floor(Math.random()*n); }
   function rot(g){ g.rotation.y = Math.PI; return g; } // face away — same-direction traffic
@@ -1744,7 +1797,7 @@
     { key:'van',       preset:'van',       weight:0.9, minLevel:2, vMin:2.5, vMax:4.6, palette:truckPalette },
     { key:'bus',       preset:'bus',       weight:0.5, minLevel:2, vMin:2.0, vMax:3.4, palette:busPalette },
     { key:'cone',      preset:null,        weight:1.1, minLevel:1, vMin:0, vMax:0, static:true, halfW:0.42, halfLen:0.42 },
-    { key:'barrier',   preset:null,        weight:0.7, minLevel:3, vMin:0, vMax:0, static:true, halfW:1.0, halfLen:0.32 }
+    { key:'barrier',   preset:null,        weight:0.7, minLevel:7, vMin:0, vMax:0, static:true, halfW:1.0, halfLen:0.32 }
   ];
   const kindByKey = {};
   vehicleKinds.forEach(k=> kindByKey[k.key] = k);
@@ -1870,10 +1923,10 @@
     // Spawn anywhere down the corridor, not in one narrow slice. Confining
     // top-ups to 88-133 units pinned the road at 11 cars: that slice fills,
     // the wall guard refuses more, and the rest of the corridor stays empty.
-    const z = player.z - (85 + Math.random()*150);
+    const z = player.z - (TRAFFIC_BAND - 40 + Math.random()*40);
     if (!zoneHasRoom(zoneIdx, z, half.halfLen)) return;
     // never park traffic right on a gate line
-    if (gates.some(function(g){ return Math.abs(g.z - z) < (half.halfLen + 7); })) return; // avoid spawning inside/too close to existing traffic
+    if (gates.some(function(g){ return Math.abs(g.z - z) < (half.halfLen + GATE_CLEAR); })) return; // avoid spawning inside/too close to existing traffic
 
     // Keep the vehicle inside the bounds of its own lane (accounting for its
     // own width) so a lane left empty is always a real, fully clear gap the
@@ -1882,7 +1935,7 @@
     const maxJitter = Math.max(0, LANE_W/2 - half.halfW - laneMargin);
     const jitter = (Math.random()-0.5) * 2 * Math.min(zoneJitter, maxJitter);
     const x = clamp(zoneCenters[zoneIdx] + jitter, -DRIVABLE_HALF + half.halfW, DRIVABLE_HALF - half.halfW);
-    if (wallIfAdded(null, x, z, half.halfW, level <= 2 ? 42 : WALL_WINDOW)) return; // never complete a wall across all lanes
+    if (wallIfAdded(null, x, z, half.halfW, level <= 2 ? 20 : WALL_WINDOW)) return; // never complete a wall across all lanes
     // stationary hazards: never place one close behind/ahead of another in a different lane
     // (two of them would form a narrow gate that passing traffic can jam in)
     if (k.static && obstacles.some(o=> o.static && nearestZoneIndex(o.x) !== zoneIdx && Math.abs(o.z - z) < 26)) return;
@@ -2000,9 +2053,11 @@
     if (isMulLine){
       defs = [G.add, G.addBig, G.mul2];
     } else if (cfg.redChance > 0 && Math.random() < cfg.redChance){
-      defs = [G.half, G.add, G.addBig];
+      defs = [G.half, Math.random() < 0.5 ? G.add : G.addMid, G.addBig];
     } else {
-      defs = [G.add, G.addBig, Math.random() < 0.5 ? G.add : G.addBig];
+      // Three different numbers on every line. The old third door always copied one
+      // of the other two, on every line that was not x2 or red.
+      defs = [G.add, G.addMid, G.addBig];
     }
     for (let i = defs.length - 1; i > 0; i--){
       const j = Math.floor(Math.random() * (i + 1));
@@ -2084,8 +2139,9 @@
       if(!r.mesh.visible) continue;
       r.life -= dt;
       const k = Math.max(0, r.life) / 0.40;
-      r.mesh.scale.setScalar(0.6 + (1 - k) * 4.2);
-      r.mesh.material.opacity = k * 0.95;
+      // kept small: at full size this ring covered much of a phone screen
+      r.mesh.scale.setScalar(0.6 + (1 - k) * 1.8);
+      r.mesh.material.opacity = k * 0.8;
       if(r.life <= 0) r.mesh.visible = false;
     }
   }
@@ -2353,8 +2409,8 @@
 
     // Field of view opens up with speed. Nothing else in the scene changes,
     // but widening the lens is what actually makes fast read as fast.
-    camSpeedRatio = clamp((playerSpeed - 10) / 20, 0, 1);
-    const targetFov = BASE_FOV + camSpeedRatio * 9 + (boostActive ? 7 : 0);
+    camSpeedRatio = clamp((playerSpeed - 10 * SPEED_SCALE) / (20 * SPEED_SCALE), 0, 1);
+    const targetFov = baseFov + camSpeedRatio * 9 + (boostActive ? 7 : 0);
     camera.fov += (targetFov - camera.fov) * Math.min(1, 5*dt);
     camera.updateProjectionMatrix();
 
@@ -2370,8 +2426,10 @@
     const dx = player.targetX - player.x;
     player.x += dx * Math.min(1, 20*dt);
     const lean = clamp(dx * 1.6, -LANE_W, LANE_W);
-    player.tilt += ((lean * 0.34) - player.tilt) * Math.min(1, 13*dt);
-    player.yaw  += ((lean * 0.15) - player.yaw)  * Math.min(1, 11*dt);
+    // Hard drags in the phone videos rolled the car about 60 degrees, close to on
+    // its side. Kept as body roll, not a tumble: about 16 degrees at most.
+    player.tilt += ((lean * 0.08) - player.tilt) * Math.min(1, 13*dt);
+    player.yaw  += ((lean * 0.08) - player.yaw)  * Math.min(1, 11*dt);
     player.group.position.set(player.x, Math.sin(distance*0.9) * 0.02 * (1 + boostMult*0.3), player.z);
     player.group.rotation.z = player.tilt;
     player.group.rotation.y = player.yaw;
@@ -2385,14 +2443,17 @@
     dashTex.offset.y = -player.z * 0.11;
 
     // spawn timers  -  traffic by time, gates by distance down the level
+    // Traffic is kept by distance, not time. A timer can't keep up with a car that
+    // overtakes at 15 to 30 units a second, and the road ahead ran empty. This holds
+    // a set number of cars in the stretch ahead, spawning them past the fog line.
     spawnTimer -= dt;
     if(spawnTimer <= 0){
-      spawnWave();
-      // top up harder whenever the road has thinned out
-      const fill = obstacles.length / cfg.maxCars;
-      if(fill < 0.6) spawnWave();
-      if(fill < 0.4){ spawnWave(); spawnWave(); }
-      spawnTimer = cfg.spawnInt * (fill < 0.6 ? 0.5 : 1);
+      let ahead = 0;
+      for(let i = 0; i < obstacles.length; i++){
+        if(obstacles[i].z < player.z - 2 && obstacles[i].z > player.z - TRAFFIC_BAND) ahead++;
+      }
+      if(ahead < cfg.bandCars) spawnWave();
+      spawnTimer = 0.06;
     }
     padTimer -= dt;
     if(padTimer <= 0){ spawnPad(); padTimer = 120; }
@@ -2413,7 +2474,19 @@
         const o = obstacles[i];
         if(player.z - o.z < 55) continue;
         for(let g = 0; g < gates.length; g++){
-          if(Math.abs(gates[g].z - o.z) < (o.halfLen + 7)){
+          if(Math.abs(gates[g].z - o.z) < (o.halfLen + GATE_CLEAR)){
+            // Move it further up the road rather than delete it. It is far ahead and
+            // in the haze, so nobody sees it. Deleting these emptied the highway.
+            const z2 = gates[g].z - (o.halfLen + GATE_CLEAR + 1);
+            const zone = nearestZoneIndex(o.x);
+            const clear = !obstacles.some(function(p){
+              return p !== o && nearestZoneIndex(p.x) === zone && Math.abs(p.z - z2) < (o.halfLen + p.halfLen + 5);
+            });
+            if(clear){
+              o.z = z2;
+              o.group.position.z = z2;
+              break;
+            }
             releaseVehicle(o.kindDef, o.group);
             obstacles.splice(i, 1);
             break;
@@ -2443,6 +2516,7 @@
         window.__lineTakes[takenLine] = (window.__lineTakes[takenLine] || 0) + 1;
         window.__lastLine = takenLine;
         applyGate(g.def);
+        linesTaken++;
         consumeGateLine(takenLine);        // <- you get one gate, not all three
         clearGateDecor(function(d){ return d.lineId === takenLine; });
         break;
@@ -2542,7 +2616,7 @@
 
     // ---- Apply movement, lane-change interpolation, LOD, scoring/collision
     const NEAR_MISS_GAP = 0.4;
-    const LOD_DETAIL_DIST = 46, LOD_SHADOW_DIST = 36;
+    const LOD_DETAIL_DIST = 34, LOD_SHADOW_DIST = 22;   // tighter, to pay for more cars
     for(let i=obstacles.length-1; i>=0; i--){
       const o = obstacles[i];
 
@@ -2591,9 +2665,29 @@
         applyMassScale();
       }
       if(xGap < 0 && zGap < 0){
-        if(mass >= o.mass){
+        // Two separate questions, because one number could not answer both: does this
+        // car kill me (threat), and what does ploughing through it cost (smash cost).
+        // Both follow the level's need, so traffic still matters at level 20, when a
+        // fixed cost of 200 mass against a need of 46,330 meant nothing.
+        // A car's weight grows along the level with the mass a player should have by
+        // then, so a crash means "you fell behind", not "you met a bus in the first two
+        // seconds". On a busy highway the old rule killed everyone at the start.
+        const pace = cfg.forgiving ? 1 : levelPace(cfg);
+        const threat = o.mass * cfg.threatScale * pace;
+        if((cfg.forgiving || linesTaken === 0) && mass < threat){
+          // levels 1 and 2, and before the first gate of any level: a bump, keep driving
+          mass = Math.max(10, Math.round(mass * 0.8));
+          showToast('BUMP!');
+          shakeTime = Math.max(shakeTime, 0.3);
+          flashColor(false);
+          applyMassScale(false, true);
+          releaseVehicle(o.kindDef, o.group);
+          obstacles.splice(i,1);
+          continue;
+        }
+        if(mass >= threat){
           // heavy enough to shunt it aside instead of dying on it
-          mass = Math.max(10, Math.round(mass - o.mass * 0.25));
+          mass = Math.max(10, Math.round(mass - threat * SMASH_COST));
           showToast('SMASH!');
           shakeTime = Math.max(shakeTime, 0.38);
           flashColor(true);
@@ -2673,12 +2767,12 @@
     // tower over, so the frame has to keep the traffic in shot.
     const camLift = (szH - 1) * 1.45;
     const camBack = (szL - 1) * 3.30;
-    const desired = new THREE.Vector3(player.x*0.42 + shakeX,
+    const desired = new THREE.Vector3(player.x*camFollow + shakeX,
                                       4.3 - camSpeedRatio*0.55 + shakeY*0.4 + camLift,
                                       player.z + 7.4 - camSpeedRatio*0.7 + camBack);
     camPos.lerp(desired, Math.min(1, 6*dt));
     camera.position.copy(camPos);
-    const lookDesired = new THREE.Vector3(player.x*0.5, 1.05, player.z - 9);
+    const lookDesired = new THREE.Vector3(player.x*(camFollow + 0.08), 1.05, player.z - 9);
     camLook.lerp(lookDesired, Math.min(1, 6*dt));
     camera.lookAt(camLook);
   }
@@ -2713,6 +2807,7 @@
     get paused(){ return paused; },
     get obstacleCount(){ return obstacles.length; },
     get maxCars(){ return levelCfg(level).maxCars; },
+    get maxThreat(){ const c = levelCfg(level); return c.forgiving ? 1e12 : 800 * c.threatScale * levelPace(c); },
     get wallAhead(){
       for(let d=6; d<WALL_WINDOW; d+=4){
         const z=player.z-d; const blocked=[false,false,false];
@@ -2844,9 +2939,9 @@
   }
 
   // One rendered frame can carry several game steps, so game speed stays true on a
-  // phone that cannot draw 60 frames a second. Below 10 fps the game slows down
-  // rather than leaping, because a jump that large is a tab switch, not a slow phone.
-  const MAX_STEP = 1 / 60, MAX_FRAME = 0.1;
+  // phone that cannot draw 60 frames a second. Below 5 fps the game slows down rather
+  // than leaping. A tab switch is not a concern here: that pauses the game anyway.
+  const MAX_STEP = 1 / 60, MAX_FRAME = 0.2;
   function loop(){
     requestAnimationFrame(loop);
     const now = performance.now();
@@ -2868,6 +2963,19 @@
   }
   requestAnimationFrame(loop);
   if (TEST.bench) benchStart();
+  else {
+    // First 30 seconds: no paragraph and no button. Playgama says it weighs these
+    // seconds most, so the car is already driving when the page appears. The title
+    // fades by itself and the only instruction is the steering hint.
+    resetGame();
+    overlay.style.display = 'none';
+    const titleEl = document.createElement('div');
+    titleEl.id = 'titleSplash';
+    titleEl.textContent = 'GATE HIGHWAY';
+    app.appendChild(titleEl);
+    const dropTitle = function(){ titleEl.style.opacity = '0'; setTimeout(function(){ titleEl.remove(); }, 600); };
+    setTimeout(dropTitle, 2200);
+  }
 })();
 </script>
 </body>
