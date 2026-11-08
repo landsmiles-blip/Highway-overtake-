@@ -39,8 +39,9 @@ The first version of the bot's dodging was bad: its "perfect" player crashed 52%
 more than a car that never steers (28%). I fixed the driving logic (real car width, checking
 the lane it sweeps through). The profile numbers above did not change.
 
-`PASSED_PER_LINE` and `IN_LANE_PER_LINE` in `gate-sim.js` are traffic rates, fitted from the
-real engine, not from anyone's win rates.
+The `TRAFFIC` table in `gate-sim.js` holds traffic rates measured by `tools/playtest/traffic.js`
+in the real engine, not fitted to anyone's win rates. My first version had two typed-in placeholders
+here; they were replaced before the freeze.
 
 ## Known limits
 
