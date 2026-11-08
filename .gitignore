@@ -1,0 +1,21 @@
+# Private or large files kept out of this public repo. They live in Mumathai's Drive.
+*.mp4
+*.wav
+*.jpg
+Screenshot*.png
+gemini-code-*.html
+rules.txt
+standards.txt
+master brief.txt
+idea notebook.txt
+02-standards.md
+04-review-ledger-protocol.md
+Research.md
+BRIEF-v1-superseded.md
+Review Ledger*.md
+audio-sources.zip
+*.jsonl
+memory/
+# Build output, made by tools/ship/build.js
+dist/
+gate-highway-*.zip
