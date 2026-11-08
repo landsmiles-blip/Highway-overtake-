@@ -7,7 +7,8 @@ const path = require('path');
 const { chromium } = require('playwright-core');
 
 const ROOT = path.resolve(__dirname, '..', '..');
-const PROTO = path.join(ROOT, 'gate-highway-prototype.html');
+// GH_PROTO points tests at a frozen copy, so edits to the game cannot disturb a long run.
+const PROTO = process.env.GH_PROTO || path.join(ROOT, 'gate-highway-prototype.html');
 const CHROME = process.env.CHROME_PATH ||
   'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe';
 const BOT = fs.readFileSync(path.join(__dirname, 'bot.js'), 'utf8');
@@ -25,7 +26,7 @@ const FAST_SHIM = `
   performance.now = function(){ return ff.now; };
   window.requestAnimationFrame = function(cb){ ff.cbs.push(cb); return 1; };
   const Real = THREE.WebGLRenderer;
-  THREE.WebGLRenderer = function(p){ const r = new Real(Object.assign({ preserveDrawingBuffer: true }, p)); const draw = r.render.bind(r); r.render = function(s, c){ if (ff.draw) draw(s, c); }; return r; };
+  THREE.WebGLRenderer = function(p){ const r = new Real(Object.assign({ preserveDrawingBuffer: true }, p)); const draw = r.render.bind(r); r.render = function(s, c){ if (ff.draw) draw(s, c); }; ff.r = r; return r; };
   ff.reseed = function(n){ seed = n >>> 0; };
   ff.step = function(dt){ ff.now += dt * 1000; const c = ff.cbs; ff.cbs = []; for (let i = 0; i < c.length; i++) c[i](ff.now); };
 })();
@@ -61,14 +62,21 @@ async function openReal(page) {
 }
 
 // Fast mode: same file, shim added in memory only.
-async function openFast(page, seed) {
-  const lines = fs.readFileSync(PROTO, 'utf8').split('\n');
+// patches: optional [find, replace] text pairs applied to the game in memory only,
+// for one-at-a-time experiments. A find that matches nothing is an error.
+async function openFast(page, seed, patches = []) {
+  let src = fs.readFileSync(PROTO, 'utf8');
+  for (const [find, rep] of patches) {
+    if (!src.includes(find)) throw new Error('patch target not found: ' + find);
+    src = src.replace(find, rep);
+  }
+  const lines = src.split('\n');
   const idx = lines.findIndex((l, i) => i > 335 && l.trim() === '<script>');
   if (idx < 0) throw new Error('game script tag not found');
   lines.splice(idx, 0, `<script>window.__seed=${seed};</script>` + FAST_SHIM);
   const dir = process.env.PLAYTEST_TMP || path.join(require('os').tmpdir(), 'gh-playtest');
   fs.mkdirSync(dir, { recursive: true });
-  const f = path.join(dir, `fast-${seed}.html`);
+  const f = path.join(dir, `fast-${seed}-${process.pid}.html`);
   fs.writeFileSync(f, lines.join('\n'));
   await page.goto('file:///' + f.replace(/\\/g, '/'));
   await page.addScriptTag({ content: BOT });
