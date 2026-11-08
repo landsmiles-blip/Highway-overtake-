@@ -542,6 +542,49 @@
   fitUi();
   resize();
 
+  // Turns a group of separate parts into one mesh with its colours baked in, so it costs
+  // one draw instead of many, and looks the same. skip keeps a part as it is.
+  let bakeMat = null;
+  function bakeGroup(group, skip){
+    if (!bakeMat) bakeMat = new THREE.MeshLambertMaterial({ vertexColors:true });
+    group.updateMatrixWorld(true);
+    const toLocal = new THREE.Matrix4().copy(group.matrixWorld).invert(), rel = new THREE.Matrix4();
+    const pos = [], nor = [], col = [], keep = [], drop = [], c = new THREE.Color(), e = new THREE.Color();
+    let casts = false;
+    group.traverse(function(m){
+      if (!m.isMesh) return;
+      if (skip && skip(m)){ keep.push(m); return; }
+      const mat = m.material;
+      c.copy(mat.color);
+      if (mat.emissive) c.add(e.copy(mat.emissive).multiplyScalar(0.5 * (mat.emissiveIntensity || 1)));
+      c.r = Math.min(1, c.r); c.g = Math.min(1, c.g); c.b = Math.min(1, c.b);
+      if (m.castShadow) casts = true;
+      const g = m.geometry.index ? m.geometry.toNonIndexed() : m.geometry.clone();
+      g.applyMatrix4(rel.multiplyMatrices(toLocal, m.matrixWorld));
+      const p = g.attributes.position, n = g.attributes.normal;
+      for (let i = 0; i < p.count; i++){
+        pos.push(p.getX(i), p.getY(i), p.getZ(i));
+        nor.push(n.getX(i), n.getY(i), n.getZ(i));
+        col.push(c.r, c.g, c.b);
+      }
+      g.dispose();
+      drop.push(m);
+    });
+    drop.forEach(function(m){ m.parent.remove(m); });
+    for (let i = group.children.length - 1; i >= 0; i--){
+      const ch = group.children[i];
+      if (!ch.isMesh && !keep.some(function(k){ return k.parent === ch; })) group.remove(ch);
+    }
+    const merged = new THREE.BufferGeometry();
+    merged.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    merged.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+    merged.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+    const body = new THREE.Mesh(merged, bakeMat);
+    body.castShadow = casts;
+    group.add(body);
+    return group;
+  }
+
   // ============================================================
   //  Lighting & atmosphere — bright daytime highway
   // ============================================================
@@ -841,6 +884,11 @@
     }
   })();
   const cloudSpan = 90 * 14;
+  // The scenery stays, all of it. Guardrails alone were 136 draws, and are now 2.
+  guardrails.forEach(function(g){ bakeGroup(g); });
+  buildings.forEach(function(b){ bakeGroup(b.mesh); });
+  lamps.forEach(function(l){ bakeGroup(l.mesh); });
+  bridges.forEach(function(b){ bakeGroup(b.mesh); });
   if (TEST.scene === 'half'){
     buildings.forEach(function(b, i){ if (i % 2) b.mesh.visible = false; });
     lamps.forEach(function(l, i){ if (i % 2) l.mesh.visible = false; });
@@ -1472,8 +1520,8 @@
   //  sim/results/. These are bots with guessed skills, not real players.
   //  Largest number on screen: 5 digits.
   // ============================================================
-  const LEVEL_NEEDS  = [580,660,1600,1980,2430,2950,3600,4700,5800,6650,
-                        8200,10100,12250,14920,17820,21850,25760,30500,36000,42000];
+  const LEVEL_NEEDS  = [580,660,1150,1500,1900,2400,3000,3900,4900,5900,
+                        7300,9200,11500,14200,17400,21400,25760,30500,36000,42000];
   const LEVEL_ADD    = [30,35,45,50,60,75,90,105,130,155,
                         185,225,265,320,385,460,555,665,800,960];
   const LEVEL_ADDBIG = [95,115,140,165,200,240,285,345,415,495,
@@ -1912,10 +1960,20 @@
     return { halfW:k.halfW, halfLen:k.halfLen };
   }
 
+  // Each traffic car was about 20 separate pieces, so 20 draws. On Mumathai's phone the
+  // frame rate stopped near 41 fps with everything else cheap, at about 870 draws, while
+  // halving the scenery gained nothing. So each car becomes one piece with its colours
+  // baked in, plus its flat shadow. The player's car keeps its parts.
+  function mergeVehicle(group){
+    bakeGroup(group, function(m){ return m.geometry === geo.shadow; });
+    group.userData.wheels = [];
+    group.userData.detailParts = [];
+    return group;
+  }
   function buildFreshVehicle(k){
-    if (k.key === 'cone') return makeConeMesh();
-    if (k.key === 'barrier') return makeBarrierMesh();
-    return rot(assembleVehicle(k.preset, k.palette[rnd(k.palette.length)]));
+    if (k.key === 'cone') return mergeVehicle(makeConeMesh());
+    if (k.key === 'barrier') return mergeVehicle(makeBarrierMesh());
+    return rot(mergeVehicle(assembleVehicle(k.preset, k.palette[rnd(k.palette.length)])));
   }
 
   // ---- Object pool: vehicles are hidden + reused instead of being created
@@ -2306,7 +2364,7 @@
       r.life -= dt;
       const k = Math.max(0, r.life) / 0.40;
       // kept small: at full size this ring covered much of a phone screen
-      r.mesh.scale.setScalar(0.6 + (1 - k) * 1.8);
+      r.mesh.scale.setScalar(0.6 + (1 - k) * 1.0);
       r.mesh.material.opacity = k * 0.8;
       if(r.life <= 0) r.mesh.visible = false;
     }
@@ -2314,8 +2372,8 @@
 
   function flashColor(good){
     flashEl.style.background = good
-      ? 'radial-gradient(circle, rgba(60,255,150,0) 45%, rgba(40,255,140,0.40) 100%)'
-      : 'radial-gradient(circle, rgba(255,60,60,0) 40%, rgba(255,30,30,0.50) 100%)';
+      ? 'radial-gradient(circle, rgba(60,255,150,0) 45%, rgba(40,255,140,0.20) 100%)'
+      : 'radial-gradient(circle, rgba(255,60,60,0) 40%, rgba(255,30,30,0.32) 100%)';
     flashEl.classList.remove('hit'); void flashEl.offsetWidth; flashEl.classList.add('hit');
   }
 
