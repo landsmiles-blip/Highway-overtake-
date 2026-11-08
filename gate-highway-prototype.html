@@ -278,14 +278,7 @@
   @media (pointer:coarse){
     #touchControls{ display:flex; }
   }
-  /* This hint used to be hidden on phones, so a phone player was never told the controls. */
-  #controlsHint{ color:#fff; font-weight:700; font-size:calc(19px * var(--ui-scale));
-    bottom:calc(150px * var(--ui-scale)); text-shadow:0 2px 6px rgba(0,0,0,.75); animation:hintPulse 1.1s ease-in-out infinite; }
-  #controlsHint.gone{ animation:none; }
-  @keyframes hintPulse{ 50%{ transform:scale(1.08); } }
-  #titleSplash{ position:absolute; top:17%; left:0; right:0; z-index:6; text-align:center; pointer-events:none;
-    font-family:'Orbitron',sans-serif; font-weight:800; font-size:calc(30px * var(--ui-scale)); letter-spacing:2px;
-    color:#fff; text-shadow:0 3px 10px rgba(0,0,0,.6); transition:opacity .5s ease; }
+  /* This hint used to be hidden on phones, so a phone player was never told the controls. */ #controlsHint{ color:#fff; font-weight:700; font-size:calc(19px * var(--ui-scale)); bottom:calc(150px * var(--ui-scale)); text-shadow:0 2px 6px rgba(0,0,0,.75); animation:hintPulse 1.1s ease-in-out infinite; } #controlsHint.gone{ animation:none; } @keyframes hintPulse{ 50%{ transform:scale(1.08); } } #titleSplash{ position:absolute; top:17%; left:0; right:0; z-index:6; text-align:center; pointer-events:none; font-family:'Orbitron',sans-serif; font-weight:800; font-size:calc(30px * var(--ui-scale)); letter-spacing:2px; color:#fff; text-shadow:0 3px 10px rgba(0,0,0,.6); transition:opacity .5s ease; }
 </style>
 </head>
 <body>
@@ -1367,14 +1360,12 @@
   //  rolling for it matters - a random x2 made clearing the wall depend on
   //  luck instead of choice, which is the opposite of the point.
   //
-  //  Simulated result (5,000 runs per level, three skill levels):
-  //    level  1-2  100% / 100% / 100%   (teaching, cannot be failed)
-  //    level 10    48% / 74% / 96%      (careless / average / skilled)
-  //    level 20    34% / 59% / 92%
+  //  Rebuilt from the real game by sim/tune-needs.js, then smoothed by hand. Results are in
+  //  sim/results/. These are bots with guessed skills, not real players.
   //  Largest number on screen: 5 digits.
   // ============================================================
-  const LEVEL_NEEDS  = [440,520,1100,1480,1930,2480,2990,4080,4980,6010,
-                        7350,8950,11880,14330,17350,20940,26400,31970,38580,46330];
+  const LEVEL_NEEDS  = [580,660,1600,1980,2430,2950,3600,4700,5800,6650,
+                        8200,10100,12250,14920,17820,21850,25760,30500,36000,42000];
   const LEVEL_ADD    = [30,35,45,50,60,75,90,105,130,155,
                         185,225,265,320,385,460,555,665,800,960];
   const LEVEL_ADDBIG = [95,115,140,165,200,240,285,345,415,495,

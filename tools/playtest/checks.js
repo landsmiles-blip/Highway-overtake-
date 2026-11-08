@@ -1,7 +1,7 @@
 // Targeted checks in real Chrome with the file as on disk. Fails loudly if a rule breaks.
 // usage: node checks.js <outDir>
 const fs = require('fs'), path = require('path');
-const { launch, phonePage, openReal } = require('./lib');
+const { launch, phonePage, openReal, PROTO } = require('./lib');
 const FRAMES = [[390, 844], [844, 390], [320, 568], [820, 1180], [1440, 900], [600, 600], [1920, 600]];
 const fails = [];
 const assert = (ok, msg) => { console.log((ok ? 'PASS ' : 'FAIL ') + msg); if (!ok) fails.push(msg); };
@@ -9,6 +9,12 @@ const assert = (ok, msg) => { console.log((ok ? 'PASS ' : 'FAIL ') + msg); if (!
 (async () => {
   const out = process.argv[2] || 'checks'; fs.mkdirSync(out, { recursive: true });
   const report = {};
+  // The safety rule in the brief: Three.js sits on line 335, game code starts at 338,
+  // so any search stays past line 337. An edit that shifts these breaks the rule.
+  const src = fs.readFileSync(PROTO, 'utf8').split('\n');
+  const huge = src.map((l, i) => l.length > 5000 ? i + 1 : 0).filter(Boolean);
+  assert(huge.join(',') === '13,335', `long lines are only 13 and 335 (found ${huge.join(',')})`);
+  assert(src[337].trim() === '<script>', 'game script still starts at line 338');
   const browser = await launch();
 
   // Level 1 and 2 forgive a hit from any car.
@@ -23,24 +29,31 @@ const assert = (ok, msg) => { console.log((ok ? 'PASS ' : 'FAIL ') + msg); if (!
     await page.close();
   }
 
-  // From level 5 a crash can still end the run; level 20 traffic still costs something.
+  // From level 5, far behind pace halfway through, a bus ends the run. Before the first
+  // gate it is only a bump. At level 20, heavy enough to smash, it still costs real mass.
   {
     const page = await phonePage(browser, 390, 844, 1); await openReal(page);
     await page.evaluate(() => window.__gh.setLevel(5));
     await page.evaluate(() => window.__gh.dropCarAhead('bus'));
-    await page.waitForFunction(() => window.__gh.state !== 'playing', null, { timeout: 15000, polling: 50 }).catch(() => {});
-    const st = await page.evaluate(() => window.__gh.state);
-    assert(st === 'over', 'level 5: a bus can wreck a player at mass 100');
+    await page.waitForFunction(() => window.__gh.mass !== 100 || window.__gh.state !== 'playing', null, { timeout: 15000, polling: 20 });
+    assert((await page.evaluate(() => window.__gh.state)) === 'playing', 'level 5: before the first gate a bus is only a bump');
+
+    await page.evaluate(() => window.__gh.setLevel(5));
+    await page.waitForFunction(() => window.__gh.levelProgress > 0.5 || window.__gh.state !== 'playing', null, { timeout: 40000, polling: 100 });
+    await page.evaluate(() => { window.__gh.setMass(100); window.__gh.dropCarAhead('bus'); });
+    await page.waitForFunction(() => window.__gh.state !== 'playing', null, { timeout: 6000, polling: 20 }).catch(() => {});
+    assert((await page.evaluate(() => window.__gh.state)) === 'over', 'level 5: halfway through and far behind, a bus wrecks you');
+
     await page.evaluate(() => window.__gh.setLevel(20));
-    const threat = await page.evaluate(() => window.__gh.maxThreat), m = await page.evaluate(t => window.__gh.setMass(Math.round(t * 1.5)), threat);
-    await page.evaluate(() => window.__gh.dropCarAhead('bus'));
-    await page.waitForFunction(x => window.__gh.mass < x || window.__gh.state !== 'playing', m, { timeout: 15000, polling: 20 }).catch(() => {});
-    const after = await page.evaluate(() => window.__gh.mass), need = await page.evaluate(() => window.__gh.need);
-    report.level20Bus = { threat, m, after, need };
-    assert(m - after > need * 0.005, `level 20: smashing a bus costs real mass (${m} to ${after}, need ${need})`);
+    await page.waitForFunction(() => window.__gh.levelProgress > 0.5 || window.__gh.state !== 'playing', null, { timeout: 40000, polling: 100 });
+    const threat = await page.evaluate(() => window.__gh.maxThreat), m = await page.evaluate(t => { const v = window.__gh.setMass(Math.round(t * 1.5)); window.__gh.dropCarAhead('bus'); return v; }, threat);
+    // the largest single drop in the next 1.5 s: other small hits may come first
+    const biggest = await page.evaluate(() => new Promise(res => { let prev = window.__gh.mass, top = 0; const t0 = performance.now(); (function f() { const c = window.__gh.mass; top = Math.max(top, prev - c); prev = c; if (performance.now() - t0 > 1500) return res(top); requestAnimationFrame(f); })(); }));
+    const need = await page.evaluate(() => window.__gh.need);
+    report.level20Bus = { threat, m, biggest, need };
+    assert(biggest > need * 0.005, `level 20: smashing a bus costs real mass (largest hit ${biggest}, need ${need})`);
     await page.close();
   }
-
   // Every frame from rule 2: start, then left lane with a big car. Pictures are for looking at.
   report.frames = [];
   for (const [w, h] of FRAMES) {
