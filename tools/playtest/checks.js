@@ -1,7 +1,7 @@
 // Targeted checks in real Chrome with the file as on disk. Fails loudly if a rule breaks.
 // usage: node checks.js <outDir>
 const fs = require('fs'), path = require('path');
-const { launch, phonePage, openReal, PROTO } = require('./lib');
+const { launch, phonePage, openReal, CAR_RECT_PATCH, PROTO } = require('./lib');
 const FRAMES = [[390, 844], [844, 390], [320, 568], [820, 1180], [1440, 900], [600, 600], [1920, 600]];
 const fails = [];
 const assert = (ok, msg) => { console.log((ok ? 'PASS ' : 'FAIL ') + msg); if (!ok) fails.push(msg); };
@@ -57,7 +57,8 @@ const assert = (ok, msg) => { console.log((ok ? 'PASS ' : 'FAIL ') + msg); if (!
   // Every frame from rule 2: start, then left lane with a big car. Pictures are for looking at.
   report.frames = [];
   for (const [w, h] of FRAMES) {
-    const page = await phonePage(browser, w, h, 1); await openReal(page);
+    // CAR_RECT_PATCH adds one read-only test getter in memory; the game file on disk is not edited.
+    const page = await phonePage(browser, w, h, 1); await openReal(page, '', CAR_RECT_PATCH);
     await page.evaluate(() => window.__gh.setLevel(10));
     await page.waitForFunction(() => window.__gh.gateInfo.length > 0 && window.__gh.playerZ < -20, null, { timeout: 20000 });
     await page.screenshot({ path: path.join(out, `f${w}x${h}-a-start.png`) });
@@ -68,8 +69,27 @@ const assert = (ok, msg) => { console.log((ok ? 'PASS ' : 'FAIL ') + msg); if (!
     await new Promise(r => setTimeout(r, 500));
     await page.screenshot({ path: path.join(out, `f${w}x${h}-b-left-big.png`) });
     const off = await page.evaluate(() => { const bad = []; for (const id of ['btnGas', 'btnBrake', 'btnPause', 'massVal', 'goalVal', 'levelVal', 'coinVal']) { const e = document.getElementById(id); if (!e) { bad.push(id + ':missing'); continue; } const r = e.getBoundingClientRect(); if (r.left < 0 || r.top < 0 || r.right > innerWidth || r.bottom > innerHeight) bad.push(id); } return bad; });
-    report.frames.push({ w, h, offscreen: off, errors: page.errors, net: page.net });
+    // The car must stay clear of the buttons once the camera has settled. "On screen" alone missed the
+    // pause button sitting on the car in short, wide frames. Checked in the left lane at 14000 mass, then
+    // in the centre lane at twice the need (the biggest car a player really gets), each after 2 s.
+    const clash = {};
+    const touching = () => page.evaluate(() => {
+      const c = window.__gh.carRect(), hit = [];
+      for (const id of ['btnPause', 'btnGas', 'btnBrake']) {
+        const b = document.getElementById(id).getBoundingClientRect();
+        if (Math.min(c.r, b.right) > Math.max(c.l, b.left) && Math.min(c.b, b.bottom) > Math.max(c.t, b.top)) hit.push(id);
+      }
+      return hit;
+    });
+    await new Promise(r => setTimeout(r, 2000)); clash.left = await touching();
+    await page.evaluate(() => window.__gh.setMass(Math.round(window.__gh.need * 2)));
+    await page.keyboard.down('ArrowRight');
+    await page.waitForFunction(() => window.__gh.playerX > -0.5, null, { timeout: 5000 }).catch(() => {});
+    await page.keyboard.up('ArrowRight');
+    await new Promise(r => setTimeout(r, 2000)); clash.centre = await touching();
+    report.frames.push({ w, h, offscreen: off, carTouchesButtons: clash, errors: page.errors, net: page.net });
     assert(off.length === 0, `${w}x${h}: nothing off screen`);
+    assert(clash.left.length === 0 && clash.centre.length === 0, `${w}x${h}: car clear of the buttons (left: ${clash.left.join(',') || 'none'}, centre: ${clash.centre.join(',') || 'none'})`);
     assert(page.errors.length === 0, `${w}x${h}: no page errors`);
     assert(page.net.length === 0, `${w}x${h}: no outside requests`);
     await page.close();

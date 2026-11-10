@@ -91,3 +91,23 @@ Mumathai did not tick the repo owner's yes as a condition for Sandbox. It remain
 | `tools/ship/build.js`, `tools/ship/covers.js` | Package, covers |
 
 Results are in `sim/results/` and `sim/README.md`. The full reasoning is in the ledger, Letters 001 to 006.
+
+## Update 2026-11-10: where the work paused (read this first; the ledger is newer if they disagree)
+
+Ledger: Letters 007 to 010, then Letter 010's addendum. Rules 11 and 12 are in the ledger and in `01-rules.md` (that file is in Google Drive, not in git).
+
+**Built and committed locally on this branch, never pushed:** change 5 (level 1 opens as the wreck), change 1 (x2 label on the hub),
+change 2 (pause button top right on screens 1.4 wide or more), change 4 (test tools: `fast.js` is now served over local HTTP so Bridge loads, any page error fails a run,
+the ship build scans every shipped file for URLs, `checks.js` checks the car stays clear of the buttons). Pictures and numbers are in the ledger addendum.
+
+**Not done: change 3, the difficulty curve.** The game still has the old `LEVEL_NEEDS`. Round 2 tuned numbers are in `sim/results/cc-curve-NOTES.md` with the exact
+next command. One extra round is left; levels 3 and 16-20 only.
+
+**Open, needs all three to agree (Rule 11):** the `checks.js` level-20 bus check fails about 1 run in 6 because the unsteered test car sometimes crashes before halfway
+(`tools/playtest/cc-level20-diag.js`). The fix is one line in the test. Briefed in the ledger, not applied.
+
+**This computer:** Chrome is at `C:\Program Files\Google\Chrome\Application\chrome.exe` (the tools default to the x86 path), so set `CHROME_PATH`. Test tools live in `C:\Users\BDE\gh-test-tools`
+(`NODE_PATH`). RAM is 7.7 GB: two long runs were stopped by the system, so close Chrome and other apps first. `checks.js` opens visible Chrome windows: do not close them while it runs.
+`wip-backup.patch` in this folder is not from Claude Code; do not commit it. Commit with explicit file paths, never `git add -A`. Git identity is the noreply address.
+
+**Push:** nothing has been pushed. Mumathai has said to push to `origin claude/task-1-letter-002` only, and only what passed.

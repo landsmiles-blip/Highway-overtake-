@@ -25,10 +25,32 @@ fs.mkdirSync(path.join(dist, 'licenses'));
 for (const f of ['fonts/OFL-Orbitron.txt', 'fonts/OFL-Rajdhani.txt', 'LICENSE-playgama-bridge.txt']) fs.copyFileSync(path.join(root, 'assets', f), path.join(dist, 'licenses', path.basename(f)));
 fs.copyFileSync(path.join(root, 'assets', 'audio', 'SOURCES.md'), path.join(dist, 'licenses', 'AUDIO-SOURCES.md'));
 
-// external calls check, Three.js line excluded: its text holds documentation URLs only
-const lines = src.split('\n').filter(l => l.length < 500000 && l.length < 60000);
-const urls = lines.join('\n').match(/https?:\/\/[^\s"'`)]+/g) || [];
-console.log('urls in game code:', urls.length ? urls : 'none');
+// External calls check over every shipped text file. index.html is scanned in full, including the
+// font line and the Three.js line (its only URLs are www.w3.org XML namespaces, not calls). Bridge
+// names many platform hosts; its list is pinned, so a changed or swapped Bridge fails here and a
+// person has to look. Other text files (licences) are listed, not pinned.
+const URL_RE = /https?:\/\/[^\s"'`)<>\\]+/g;
+const hostsOf = t => [...new Set((t.match(URL_RE) || []).map(u => { try { return new URL(u).host; } catch (e) { return u; } }))].sort();
+const PINNED = {
+  'index.html': ['www.w3.org'],
+  'playgama-bridge.js': ['api.playgama.com', 'assets.msn.com', 'cdn.discordapp.com', 'cdn.xsolla.net', 'cdn.y8.com', 'connect.facebook.net',
+    'discord.com', 'fonts.googleapis.com', 'fonts.gstatic.com', 'game-cdn.poki.com', 'gamepush.com', 'games.playgama.com', 'gtg.samsungapps.com',
+    'html5.api.gamedistribution.com', 'jiogames.akamaized.net', 'lagged.com', 'pagead2.googlesyndication.com', 'playgama.com', 'sad.adsgram.ai',
+    'sdk.crazygames.com', 'storage.googleapis.com', 'store.xsolla.com', 'telegram.org', 'unpkg.com', 'vk.com', 'www.hippoobox.com', 'www.w3.org'],
+};
+const urlProblems = [];
+(function scan(d) {
+  for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+    const p = path.join(d, e.name);
+    if (e.isDirectory()) { scan(p); continue; }
+    if (!/\.(html|js|json|md|txt)$/.test(e.name)) continue;
+    const rel = path.relative(dist, p).replace(/\\/g, '/'), hosts = hostsOf(fs.readFileSync(p, 'utf8')), pinned = PINNED[rel];
+    const extra = pinned ? hosts.filter(h => !pinned.includes(h)) : [];
+    console.log('urls in ' + rel + ':', hosts.length ? hosts.join(', ') : 'none', pinned ? (extra.length ? '  UNEXPECTED: ' + extra.join(', ') : '  (as pinned)') : '  (not pinned)');
+    if (extra.length) urlProblems.push(rel + ': ' + extra.join(', '));
+  }
+})(dist);
+if (urlProblems.length) throw new Error('unexpected outside hosts in the ship build: ' + urlProblems.join('; '));
 
 const zip = path.join(root, `gate-highway-${version}.zip`); fs.rmSync(zip, { force: true });
 // Windows PowerShell's Compress-Archive writes backslashes in paths, which breaks on Linux

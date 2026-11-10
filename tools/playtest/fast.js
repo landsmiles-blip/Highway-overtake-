@@ -40,12 +40,13 @@ function runBatch({ level, profile, runs }) {
   const have = new Set(results.map(r => r.profile + ':' + r.level));
   for (const profile of profiles) for (const level of levels) if (!have.has(profile + ':' + level)) jobs.push({ level, profile, runs });
   const browser = await launch({ headless: true });
-  let seed = 1000; const t0 = Date.now(); let done = 0;
+  let seed = 1000; const t0 = Date.now(); let done = 0; const failed = [];
   await Promise.all(Array.from({ length: pages }, async () => {
     const page = await phonePage(browser); await openFast(page, seed++);
     while (jobs.length) {
       const job = jobs.shift();
       // a fresh page per batch keeps memory flat on a small machine
+      page.errors.length = 0;   // count errors per batch, not since the page was first opened
       await page.reload(); await page.addScriptTag({ content: fs.readFileSync(require('path').join(__dirname, 'bot.js'), 'utf8') });
       await page.waitForFunction(() => !!window.__gh && !!window.__ff);
       const r = await page.evaluate(runBatch, job);
@@ -55,11 +56,13 @@ function runBatch({ level, profile, runs }) {
       const summary = { profile: job.profile, level: job.level, runs: n, win: +avg(x => +x.win).toFixed(3), crash: +avg(x => +x.crash).toFixed(3),
         wallFail: +avg(x => +(!x.win && !x.crash)).toFixed(3), avgMass: Math.round(avg(x => x.mass)), need: rows[0].need, avgSecs: +avg(x => x.secs).toFixed(1),
         t800med: t8.length ? t8[t8.length >> 1] : null, carsMin: Math.min(...rows.map(x => x.carsMin)), carsMax: Math.max(...rows.map(x => x.carsMax)), errors: page.errors.length, heapMB };
-      if (page.errors.length) summary.errorText = page.errors[0].slice(0, 300);
+      if (page.errors.length) { summary.errorText = page.errors[0].slice(0, 300); failed.push(job.profile + ' level ' + job.level); }
       results.push(summary); done++;
       console.log(JSON.stringify(summary) + `  [${done} jobs, ${((Date.now() - t0) / 1000).toFixed(0)}s]`);
       fs.writeFileSync(out, JSON.stringify(results, null, 0));
     }
   }));
   await browser.close();
+  // A test that records an error without failing on it is decoration: any page error fails the run.
+  if (failed.length) { console.error('FAILED: page errors in ' + failed.join(', ') + ' (see errorText in ' + out + ')'); process.exitCode = 1; }
 })().catch(e => { console.error(e); process.exit(1); });

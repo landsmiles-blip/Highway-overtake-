@@ -259,7 +259,7 @@
     font-size:15px; letter-spacing:2px; cursor:pointer;
     display:flex; align-items:center; justify-content:center;
   }
-  #btnPause:active{ transform:translateX(-50%) scale(.93); }
+  #btnPause:active{ transform:translateX(-50%) scale(.93); } /* wide screens: the car fills the bottom centre, so the button goes top right, under COINS */ @media (min-aspect-ratio:7/5){ #btnPause{ left:auto; right:calc(10px * var(--ui-scale)); top:calc(76px * var(--ui-scale)); bottom:auto; transform:none; } #btnPause:active{ transform:scale(.93); } }
   #controlsHint{ transition:opacity .5s ease; bottom:84px; }
   #controlsHint.gone{ opacity:0; pointer-events:none; }
   #pauseScreen{
@@ -1387,9 +1387,11 @@
   })();
 
   let carTier = -1;
+  // Level 1 opens as the wreck (Mumathai, 2026-11-09). Its start ratio is 0.172, which would
+  // already read FIXED, so level 1's first cut is 0.2. Look only: no mass, need or random number changes.
   function tierForRatio(r){
     let t = 0;
-    for(let i = 0; i < TIER_CUTS.length; i++) if(r >= TIER_CUTS[i]) t = i + 1;
+    for(let i = 0; i < TIER_CUTS.length; i++) if(r >= (i === 0 && level === 1 ? 0.2 : TIER_CUTS[i])) t = i + 1;
     return t;
   }
   function setCarTier(t, announce){
@@ -2217,8 +2219,9 @@
         g.lineWidth = 11; g.strokeStyle = '#7a23c8'; g.stroke();
       }
       g.font = 'bold 74px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
-      g.lineWidth = 15; g.strokeStyle = dark; g.strokeText('x2', cx, 66);
-      g.fillStyle = ink; g.fillText('x2', cx, 66);
+      // the label sits on the turbine hub, not on the arrow row, so the three arrows all read
+      g.lineWidth = 15; g.strokeStyle = dark; g.strokeText('x2', cx, cy);
+      g.fillStyle = ink; g.fillText('x2', cx, cy);
     } else {                                                // red: parts fall off
       shape(function(){ g.arc(cx, cy - 20, 76, 0, Math.PI * 2); }, ink);
       for (let i = 0; i < 8; i++){
