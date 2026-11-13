@@ -1,0 +1,4 @@
+events after losing (ad allowed by override): ["18.0s interstitial loading","18.0s interstitial failed"]
+interstitialState now: failed | game state: over | paused: false
+after Try again: state playing | level 5
+page errors: [] | outside requests: []

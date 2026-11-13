@@ -1,0 +1,27 @@
+{
+ "info": {
+  "bridge": true,
+  "platform": "mock",
+  "supported": false,
+  "minDelay": 60,
+  "stateAtStart": "closed"
+ },
+ "steps": [
+  {
+   "step": "lose 1",
+   "events": [],
+   "state": "over"
+  },
+  {
+   "step": "win",
+   "events": [],
+   "nextBtn": true
+  },
+  {
+   "step": "lose 2",
+   "events": []
+  }
+ ],
+ "pageErrors": [],
+ "outsideRequests": []
+}

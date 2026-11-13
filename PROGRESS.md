@@ -336,3 +336,67 @@ guess 2: g=1.2125 needs 16-20 16730,20290,24600,29830,36160 | average win 67.5 7
 1. The mute button and the slow-Bridge fix wait for the chat session's yes. Rule 11: "One agent agreeing with him is not enough." Meanwhile the work all three agreed goes on.
 2. `wip-backup.patch` is deleted: nothing unique in it (P2b), untracked and not ignored (a `git add -A` would publish 2.9 MB of noise), the chat session that asked for it says it can go, and its content can be rebuilt with `git diff fd09e6b 0469a83`.
 3. Order becomes: curve round, then the two fixes if agreed, then `checks.js` and `fast.js`, so the checks test everything that is built.
+
+## P2b `wip-backup.patch` deleted (Mumathai handed me the decision; reasons in the audit above)
+
+- [x] Proof it held nothing unique, run just before deleting (the script deletes only if every line passes):
+
+```
+gate-highway-prototype.html    IDENTICAL to commit 0469a83
+tools/playtest/checks.js       IDENTICAL to commit 0469a83
+tools/playtest/fast.js         IDENTICAL to commit 0469a83
+tools/playtest/lib.js          IDENTICAL to commit 0469a83
+tools/ship/build.js            IDENTICAL to commit 0469a83
+README.md                      line-ending noise only: true
+index.html                     line-ending noise only: true
+playables/index.html           line-ending noise only: true
+playables/three.min.js         line-ending noise only: true
+deleted wip-backup.patch
+--- git status after:
+ M README.md
+ M index.html
+ M playables/index.html
+ M playables/three.min.js
+?? tools/playtest/cc-curve-growth.js
+```
+
+## P1-P2 commits (local only; `origin` still `206a9de`)
+
+- [x] `4cd4152` test guards (P1). `1a6250b` Playgama fixes (P2). Both authored with the noreply address.
+
+## P2c Ledger: Mumathai's yes to the two fixes, request to the chat session
+
+- [x] "Letter 012, addendum 1" posted (ledger rev 39; rev 40 corrected a placeholder time I had left, "12:3x", to the real 12:34). Asks the chat session for yes or no on the mute button and the slow-Bridge fix; neither is built until it answers (Rule 11).
+
+## P3 Capped curve round (Letter 011 item 5, Letter 012)
+
+- [x] Search finished. Guesses 1-2 are in the audit above (cut-off run, 09:17). Resumed run, same seeds, output:
+
+```
+started 12:34:20 (resumed: bracket [1.2125, 1.275] from guesses 1-2, same seeds)
+target win % levels 16-20: 66.6 64.3 62.1 59.8 57.5 | mean 62.1
+guess 1: g=1.2437 needs 16-20 17160,21350,26550,33020,41070 | average win 68.8 65.8 64.3 63.0 63.7 | mean 65.1 vs 62.1
+final g (middle of [1.2437, 1.2750]) = 1.2594 -> LEVEL_NEEDS [580,660,1460,1810,2190,2560,3020,3690,4600,5580,6530,7430,9870,11600,13800,17380,21890,27560,34710,43720]
+```
+
+  (The guess above is the third overall; the script numbers guesses per run. Exact values: guess 3 g = 1.24375, final g = 1.259375.)
+- [x] The check run that followed was **lost**: Mumathai interrupted the session after 12:54 and the check prints only at the end. Re-run alone at 14:46:01 with the same final interval and 0 new guesses (`cc-curve-growth.js <out> 1.24375 1.275 0`), so g and the needs are identical.
+- [ ] **Check run NOT done.** Started 14:46:01. Its log never changed after 14:46:04 (3 lines: target, final g, needs) and no result line came. It was still running at 16:32, 1 h 46 min later, when it should take 15-20 min; I stopped it then on Mumathai's order ("stop where you are, record everything and lock in"). **Cause unknown**: it hung or ran very slowly; the script prints results only at the end, so nothing shows which. No leftover test processes were found after stopping.
+- [ ] **Next time, before re-running:** make `cc-curve-growth.js` print and save each check batch as it finishes, so a stop keeps what was done and shows where it stalls. Then re-run the check alone: `node tools/playtest/cc-curve-growth.js <out> 1.24375 1.275 0` (same g = 1.259375 and needs, same seeds).
+
+## Locked in at 16:33 on Mumathai's order ("stop where you are, record everything and lock in")
+
+| Item | State |
+|---|---|
+| P1 test guards | done, committed `4cd4152` |
+| P2 Playgama fixes (ads, no Esc, Bridge-only storage when shipped) | done, committed `1a6250b` |
+| P2b `wip-backup.patch` | deleted after proof (above) |
+| P2c ledger request to the chat session (mute button, slow-Bridge fix) | posted, rev 39-40; **no answer yet**, so neither fix is built |
+| P3 curve search | done: g = 1.259375; levels 16-20 walls 17380, 21890, 27560, 34710, 43720 |
+| P3 curve check run | **not done** (see above); `LEVEL_NEEDS` in the game **not changed** |
+| P4 `checks.js`, `fast.js` | not run |
+| Push or upload | none; `origin` is `206a9de` |
+
+Evidence saved in the repo (scratch folders get wiped): `sim/results/cc-curve-round4-search-part1.log/.json`, `cc-curve-round4-search-part2.log/.json`, `cc-guard-proof.log/.json`, `cc-ad-mock.log/.json`, `cc-ad-override.log`.
+
+**To continue:** (1) read the ledger from rev 40 for the chat session's answer; (2) the progress-printing change to `cc-curve-growth.js`, then the check run; (3) judge, apply `LEVEL_NEEDS` in one edit, commit; (4) the two fixes if agreed; (5) `checks.js` and `fast.js`; (6) ledger report, HANDOVER.md, memory.

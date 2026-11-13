@@ -1,0 +1,8 @@
+started 09:13:15
+[0.0s] bridge: {"bridge":true,"platform":"mock","supported":false,"minDelay":60,"stateAtStart":"closed"}
+[22.5s] after losing level 5 (result screen shown): (no events)
+[28.8s] after winning level 2 (result screen shown): (no events)
+[28.8s] waiting 62 s for Bridge's minimum delay to pass
+[113.4s] after losing level 5 again, past 60 s: (no events)
+[113.4s] page errors: [] | outside requests: []
+finished 09:15:12 exit=0
