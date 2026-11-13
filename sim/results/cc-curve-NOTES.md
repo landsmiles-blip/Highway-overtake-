@@ -33,3 +33,16 @@ measurement. If it passes: apply LEVEL_NEEDS to the game in ONE edit, run checks
 Casual bot (honest note): one wall number per level cannot make both bots smooth. Casual 90 -> 72-78 at level 3 and 75 -> 65 at level 5 are real cliffs
 (level 5 was already 96 -> 75 before any change). Tuning targets the average bot only; the casual numbers are reported.
 Memory: the machine has 7.7 GB; two long runs were stopped by the system. Close Chrome, ChatGPT and Edge first.
+
+## Round 3 (2026-11-12): FAILED the pass rule. The game keeps its old LEVEL_NEEDS.
+
+Tuned levels 3 and 16-20 only (level 3 target 0.94, declared). Round 3 needs for those levels: 1460, 16680, 26200, 32400, 37690, 39200
+(levels 1-2 and 4-15 unchanged from round 2). Re-measured those six levels, both bots, 200 runs, seed offset 1357913, 0 page errors.
+Average-bot win %: L3 96, L16 64, L17 59, L18 51, L19 54, L20 64. Mean over levels 3-20: 76.6 (was 76.9).
+Failed: level 3 mass/need 1.55 vs level 2's 1.48; level 18 at 51 vs target 62; level 20 (64) rises above level 19 (54).
+Files: cc-curve-tune-round3.json, cc-curve-remeasure-round3.json. Full output and the judge table: PROGRESS.md (repo root, not committed).
+Cause: the tuner assumes the mass a bot reaches does not change when the wall changes, but traffic weight follows the wall
+(threatScale = need/1100 * ..., game line 1574): level 18 wall +22 percent, mass reached -14 percent, win 67 -> 51. The last iteration is also undamped, and the
+standard error of a win rate at 200 runs (about 3.5 points) is about as big as the target step (2.3 points a level).
+Proposed fix, needs all three to agree: levels 16-20 on one smooth growth curve with one parameter searched on the mean win rate, 400 runs, a damped last
+iteration, and level 3 judged by win rate or with a standard-error allowance. Fallback: keep today's curve and read real Sandbox data.

@@ -96,12 +96,13 @@ Results are in `sim/results/` and `sim/README.md`. The full reasoning is in the 
 
 Ledger: Letters 007 to 010, then Letter 010's addendum. Rules 11 and 12 are in the ledger and in `01-rules.md` (that file is in Google Drive, not in git).
 
-**Built and committed locally on this branch, never pushed:** change 5 (level 1 opens as the wreck), change 1 (x2 label on the hub),
+**Built, committed and pushed to `origin claude/task-1-letter-002` on 2026-11-13 (Mumathai's green light):** change 5 (level 1 opens as the wreck), change 1 (x2 label on the hub),
 change 2 (pause button top right on screens 1.4 wide or more), change 4 (test tools: `fast.js` is now served over local HTTP so Bridge loads, any page error fails a run,
 the ship build scans every shipped file for URLs, `checks.js` checks the car stays clear of the buttons). Pictures and numbers are in the ledger addendum.
 
-**Not done: change 3, the difficulty curve.** The game still has the old `LEVEL_NEEDS`. Round 2 tuned numbers are in `sim/results/cc-curve-NOTES.md` with the exact
-next command. One extra round is left; levels 3 and 16-20 only.
+**Not done: change 3, the difficulty curve.** The game still has the old `LEVEL_NEEDS`. Rounds 1, 2 and 3 all failed the pass rule (round 3 on 2026-11-12: level 3 ratio, level 18 off target,
+level 20 rising). Cause and proposed fix are in the ledger (Letter 010, addendum 2) and in `sim/results/cc-curve-NOTES.md`; every step's real output is in `PROGRESS.md`. No extra round is left:
+a new method (smooth growth curve for levels 16-20, 400 runs, damped last iteration) needs Mumathai and the chat session to agree. Fallback: keep today's curve and read real Sandbox data.
 
 **Open, needs all three to agree (Rule 11):** the `checks.js` level-20 bus check fails about 1 run in 6 because the unsteered test car sometimes crashes before halfway
 (`tools/playtest/cc-level20-diag.js`). The fix is one line in the test. Briefed in the ledger, not applied.
@@ -110,4 +111,4 @@ next command. One extra round is left; levels 3 and 16-20 only.
 (`NODE_PATH`). RAM is 7.7 GB: two long runs were stopped by the system, so close Chrome and other apps first. `checks.js` opens visible Chrome windows: do not close them while it runs.
 `wip-backup.patch` in this folder is not from Claude Code; do not commit it. Commit with explicit file paths, never `git add -A`. Git identity is the noreply address.
 
-**Push:** nothing has been pushed. Mumathai has said to push to `origin claude/task-1-letter-002` only, and only what passed.
+**Push:** pushed on 2026-11-13 to `origin claude/task-1-letter-002` only (never `main`, never the owner's repo). The phone link now shows this build. Push again only when Mumathai says so, and only what passed.
