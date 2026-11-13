@@ -433,21 +433,25 @@
 
   // ============================================================
   //  Playgama Bridge: tells the platform we are ready, sends level events for its
-  //  analytics, saves progress, and obeys pause and mute. Without Bridge the game
-  //  still runs and saves to this browser.
+  //  analytics, saves progress, and obeys pause and mute. Without Bridge the test copy
+  //  still runs and saves to this browser; the shipped copy saves only through Bridge
+  //  (Playgama rule 3.2.1: the ship build strips the browser-storage lines below).
   // ============================================================
   const Platform = {
     bridge: null,
     msg: function(m){ try { if (this.bridge) this.bridge.platform.sendMessage(m); } catch(e){} },
+    // Interstitial at a natural pause (rules 2.1.2, 2.1.3). Bridge decides whether one shows and how
+    // often; the game adds no timer. Sound and pause during the ad come from the handlers in load().
+    ad: function(){ try { const b = this.bridge; if (b && b.advertisement.isInterstitialSupported) b.advertisement.showInterstitial(); } catch(e){} },
     save: function(lv, c, q){
       try {
         if (this.bridge) this.bridge.storage.set(['gh_level','gh_coins','gh_quality'], [String(lv), String(c), String(q)]).catch(function(){});
-        else { localStorage.setItem('gh_level', lv); localStorage.setItem('gh_coins', c); localStorage.setItem('gh_quality', q); }
+        /*SHIP-STRIP-START*/else { localStorage.setItem('gh_level', lv); localStorage.setItem('gh_coins', c); localStorage.setItem('gh_quality', q); }/*SHIP-STRIP-END*/
       } catch(e){}
     },
     load: function(){
       const self = this;
-      function fromLocal(){ try { return [localStorage.getItem('gh_level'), localStorage.getItem('gh_coins'), localStorage.getItem('gh_quality')]; } catch(e){ return [null, null, null]; } }
+      function fromLocal(){ /*SHIP-STRIP-START*/try { return [localStorage.getItem('gh_level'), localStorage.getItem('gh_coins'), localStorage.getItem('gh_quality')]; } catch(e){}/*SHIP-STRIP-END*/ return [null, null, null]; }
       if (!window.bridge || TEST.bench) return Promise.resolve(fromLocal());
       const timeout = new Promise(function(res){ setTimeout(function(){ res('late'); }, 2500); });
       const work = window.bridge.initialize().then(function(){
@@ -1870,7 +1874,7 @@
   window.addEventListener('keydown', e=>{
     if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' '].includes(e.key)) e.preventDefault();
     keys[e.key] = true;
-    if(e.key === 'Escape' || e.key === 'p' || e.key === 'P') togglePause();
+    if(e.key === 'p' || e.key === 'P') togglePause();   // not Esc: Playgama rule 1.5.2, the browser keeps it for leaving full screen
   }, { passive:false });
   window.addEventListener('keyup', e=>{ keys[e.key] = false; });
 
@@ -2544,7 +2548,7 @@
       '<div class="board wide"><span class="label">COINS +</span><span class="value">' + earned + '</span></div>' +
       '</div>' +
       '<button id="nextBtn">' + (last ? 'Play again' : 'Level ' + (level + 1)) + '</button>';
-    overlay.style.display = 'flex';
+    overlay.style.display = 'flex'; Platform.ad();   // level won: a natural pause before the next one
     document.getElementById('nextBtn').addEventListener('click', function(){
       Snd.play('click');
       if(last) level = 1; else level += 1;
@@ -2591,7 +2595,7 @@
         '<div class="board wide"><span class="label">COINS</span><span class="value">' + coins + '</span></div>' +
         '</div>' +
         '<button id="retryBtn">Try again</button>';
-      overlay.style.display = 'flex';
+      overlay.style.display = 'flex'; Platform.ad();   // level lost: a natural pause before the retry
       document.getElementById('retryBtn').addEventListener('click', function(){
         Snd.play('click');
         startLevel();
