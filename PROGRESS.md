@@ -201,8 +201,138 @@ lv  need r2 -> r3 (change) | win r2 -> r3 | avg mass r2 -> r3
 
 - **The curve (change 3) is not applied.** Round 3, the last extra round, failed the pass rule (S5). The game still has the old `LEVEL_NEEDS`. A new method needs all three to agree (proposed fix in the ledger, addendum 2).
 - **`checks.js` and `fast.js` were not run** on a changed game, because the game did not change (ordered: only if the pass rule is met).
-- **No push** (ordered; `origin` is still `fd09e6b`). **No commit** since `0469a83`: not asked. Uncommitted now: `PROGRESS.md`, the NOTES update, and the two round 3 evidence files.
+- ~~No push (ordered; `origin` is still `fd09e6b`). No commit since `0469a83`.~~ **Superseded 2026-11-13:** on Mumathai's go, these files were committed in `206a9de` and pushed (`fd09e6b..206a9de`, fork branch only). Line corrected on Claude's request (Letter 011, item 9).
 - **The level-20 check in `checks.js` is not touched** (ordered; chat and Mumathai have not agreed; no reply in the ledger yet).
 - Casual-bot baseline for levels 14-20 is missing (earlier runs stopped for memory); casual is reported, not tuned.
 - Not checked today: the closed-page crashes of `checks.js` (cause unconfirmed), because `checks.js` was not run.
 - Chat has not answered either question in addendum 1 (level-20 test fix; round 3 with level 3's target 94). Round 3 ran on Mumathai's order.
+
+---
+
+# Part 2: Letter 011 build (2026-11-13, Claude Opus 5.5)
+
+Orders: Mumathai, 2026-11-13: "Read Letter 011 and its addendum 1 in the ledger. Agree or object to each item, with evidence, in the ledger first. Then build in the order
+listed, with the real test output in PROGRESS.md. Do not push or upload anything until I say."
+Order from Letter 011 addendum 1: (1) the test guards; (2) the three Playgama fixes; (3) one capped curve round; (4) `checks.js` and `fast.js` with 0 errors; (5) push only on Mumathai's word.
+
+## P0 Ledger first
+
+- [x] Letter 012 posted at ledger rev 38, before any code: agreed to every item, withdrew "keep today's curve", two new findings (no mute button, rule 3.3.3; slow-Bridge overwrite risk), refused the zip upload check (no uploads until Mumathai says). Addendum 4's date fixed in the same update.
+
+## P1 Test guards (items 1 and 2)
+
+- [x] `checks.js`: level 5 and level 20 now set mass to twice the need after `setLevel`, wait for halfway, then assert `state === 'playing'` ("test setup: car crashed before halfway") before the bus test.
+- [x] Proof: `tools/playtest/cc-guard-proof.js 12`, against a frozen copy of the game before the Playgama edits. First attempt at 09:00 died at launch (Chrome was updating itself 156 -> 157.0.8103.51; a launch test afterwards booted the game with 0 page errors). Rerun output, summary lines:
+
+```
+started 09:01:43
+{"run":1,"l5new":{"atHalf":"playing","progress":0.5,"end":"over","guard":true,"pass":true,"vacuous":false},"l20new":{"atHalf":"playing","guard":true,"biggest":392,"need":39000,"pass":true},"l5old":{...,"vacuous":false}}
+... (runs 2-12 the same shape; level-20 largest hit 391 to 4623) ...
+NEW level 5:  guard ok 12/12, check passes 12/12
+NEW level 20: guard ok 12/12, check passes 12/12
+OLD level 5:  passed 12/12, of which without testing the bus (car already crashed at halfway) 0
+finished 09:12:59 exit=0
+```
+
+Reading: both guarded checks pass 12 of 12. The old level-5 weakness (item 2) is real in the code but did not occur in these 12 runs.
+
+## P2 Playgama fixes (Mumathai: "yes add them", "remove", "okay then")
+
+- [x] Game edits (all past line 337; line 338 is still `<script>`; long lines still 13 and 335; the game script parses). `git diff -U0 HEAD -- gate-highway-prototype.html`, changed lines:
+
+```
+-  //  analytics, saves progress, and obeys pause and mute. Without Bridge the game
+-  //  still runs and saves to this browser.
++  //  analytics, saves progress, and obeys pause and mute. Without Bridge the test copy
++  //  still runs and saves to this browser; the shipped copy saves only through Bridge
++  //  (Playgama rule 3.2.1: the ship build strips the browser-storage lines below).
++    // Interstitial at a natural pause (rules 2.1.2, 2.1.3). Bridge decides whether one shows and how
++    // often; the game adds no timer. Sound and pause during the ad come from the handlers in load().
++    ad: function(){ try { const b = this.bridge; if (b && b.advertisement.isInterstitialSupported) b.advertisement.showInterstitial(); } catch(e){} },
+-        else { localStorage.setItem('gh_level', lv); localStorage.setItem('gh_coins', c); localStorage.setItem('gh_quality', q); }
++        /*SHIP-STRIP-START*/else { localStorage.setItem('gh_level', lv); localStorage.setItem('gh_coins', c); localStorage.setItem('gh_quality', q); }/*SHIP-STRIP-END*/
+-      function fromLocal(){ try { return [localStorage.getItem('gh_level'), localStorage.getItem('gh_coins'), localStorage.getItem('gh_quality')]; } catch(e){ return [null, null, null]; } }
++      function fromLocal(){ /*SHIP-STRIP-START*/try { return [localStorage.getItem('gh_level'), localStorage.getItem('gh_coins'), localStorage.getItem('gh_quality')]; } catch(e){}/*SHIP-STRIP-END*/ r
+-    if(e.key === 'Escape' || e.key === 'p' || e.key === 'P') togglePause();
++    if(e.key === 'p' || e.key === 'P') togglePause();   // not Esc: Playgama rule 1.5.2, the browser keeps it for leaving full screen
+-    overlay.style.display = 'flex';
++    overlay.style.display = 'flex'; Platform.ad();   // level won: a natural pause before the next one
+-      overlay.style.display = 'flex';
++      overlay.style.display = 'flex'; Platform.ad();   // level lost: a natural pause before the retry
+```
+
+- [x] `tools/ship/build.js` refuses a shipped file that contains `localStorage` or `sessionStorage` (rule 3.2.1). Scratch build of the real files (the repo's `dist/` and zip untouched):
+
+```
+urls in index.html: www.w3.org   (as pinned)
+urls in playgama-bridge.js: ... (as pinned)
+dist 4.75 MB; zip 3.88 MB
+stripped 7758 bytes of test code
+exit=0
+--- shipped index.html counts:
+localStorage       0
+sessionStorage     0
+'Escape'           0
+showInterstitial   1
+Platform.ad()      2
+SHIP-STRIP         0
+window.__gh        0
+--- the load fallback as shipped:
+function fromLocal(){  return [null, null, null]; }
+--- shipped script parses: OK, game script 130349 chars
+```
+
+  First build attempt failed with "left in ship build: localStorage": my own new comment contained the word. Reworded the comment; the check was kept strict. Negative test: a planted `localStorage` in game code fails the build.
+
+- [x] Ads in Bridge mock mode, `tools/playtest/cc-ad-mock.js` (lose a level, win one, wait past 60 s, lose again):
+
+```
+started 09:13:15
+[0.0s] bridge: {"bridge":true,"platform":"mock","supported":false,"minDelay":60,"stateAtStart":"closed"}
+[22.5s] after losing level 5 (result screen shown): (no events)
+[28.8s] after winning level 2 (result screen shown): (no events)
+[28.8s] waiting 62 s for Bridge's minimum delay to pass
+[113.4s] after losing level 5 again, past 60 s: (no events)
+[113.4s] page errors: [] | outside requests: []
+finished 09:15:12 exit=0
+```
+
+  Reading: in mock, `isInterstitialSupported` is false (mock is not in Bridge's list of 23 supported platforms; `playgama` and `youtube` are in it), so `Platform.ad()` correctly does nothing.
+  Test-only override (in the page, not the game) forcing `isInterstitialSupported` to true, then losing a level:
+
+```
+events after losing (ad allowed by override): ["18.0s interstitial loading","18.0s interstitial failed"]
+interstitialState now: failed | game state: over | paused: false
+after Try again: state playing | level 5
+page errors: [] | outside requests: []
+```
+
+  Reading: mock answers `loading` then `failed` at once; the game stays on the result screen and Try again works (rule 2.1.7). Mock never reaches `opened`/`closed`, so the pause-and-mute-during-an-ad path cannot be shown on this computer; it uses the existing `PAUSE_STATE_CHANGED` handler (game line 462), as Bridge's docs recommend. Playgama's QA tool would show it, but that needs an upload, which Mumathai has not allowed.
+
+## Audit, 2026-11-13 12:28 (asked by Mumathai before continuing)
+
+| Item | State then |
+|---|---|
+| Letter 012 | posted at rev 38; no reply from the chat session since |
+| P1 test guards | built and proven, not committed |
+| P2 Playgama fixes | built and proven, not committed |
+| P3 capped curve round | cut off when the session ended, after 2 of 3 guesses (log below); no check run |
+| P4 `checks.js`, `fast.js` | not run |
+| Mute button, slow-Bridge fix | Mumathai: yes to both (2026-11-13). Chat session: no answer in the ledger |
+| This file, P1-P2 | checked against the logs: accurate; one sentence reworded (mock and Bridge's support list); the "game line 462" reference re-checked (above) |
+| `wip-backup.patch` | holds nothing that is not in git (proof under P2b) |
+| Computer | 2.9 GB free; no Chrome, Edge, ChatGPT or Claude desktop |
+
+Cut-off curve run, the two guesses that finished (same seeds as the resumed run):
+
+```
+started 09:17:12
+target win % levels 16-20: 66.6 64.3 62.1 59.8 57.5 | mean 62.1
+guess 1: g=1.2750 needs 16-20 17600,22430,28600,36470,46500 | average win 65.5 66.5 61.5 54.3 57.5 | mean 61.1 vs 62.1
+guess 2: g=1.2125 needs 16-20 16730,20290,24600,29830,36160 | average win 67.5 74.5 70.0 70.8 66.3 | mean 69.8 vs 62.1
+```
+
+**Decisions handed to me by Mumathai, with reasons:**
+1. The mute button and the slow-Bridge fix wait for the chat session's yes. Rule 11: "One agent agreeing with him is not enough." Meanwhile the work all three agreed goes on.
+2. `wip-backup.patch` is deleted: nothing unique in it (P2b), untracked and not ignored (a `git add -A` would publish 2.9 MB of noise), the chat session that asked for it says it can go, and its content can be rebuilt with `git diff fd09e6b 0469a83`.
+3. Order becomes: curve round, then the two fixes if agreed, then `checks.js` and `fast.js`, so the checks test everything that is built.

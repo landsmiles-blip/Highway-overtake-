@@ -38,14 +38,20 @@ const assert = (ok, msg) => { console.log((ok ? 'PASS ' : 'FAIL ') + msg); if (!
     await page.waitForFunction(() => window.__gh.mass !== 100 || window.__gh.state !== 'playing', null, { timeout: 15000, polling: 20 });
     assert((await page.evaluate(() => window.__gh.state)) === 'playing', 'level 5: before the first gate a bus is only a bump');
 
-    await page.evaluate(() => window.__gh.setLevel(5));
+    // The unsteered car must reach halfway alive, or the check below passes without testing
+    // the bus (Letter 011, item 2). Twice the need smashes every car on the way; then make sure.
+    await page.evaluate(() => { window.__gh.setLevel(5); window.__gh.setMass(window.__gh.need * 2); });
     await page.waitForFunction(() => window.__gh.levelProgress > 0.5 || window.__gh.state !== 'playing', null, { timeout: 40000, polling: 100 });
+    assert((await page.evaluate(() => window.__gh.state)) === 'playing', 'level 5: test setup: car crashed before halfway');
     await page.evaluate(() => { window.__gh.setMass(100); window.__gh.dropCarAhead('bus'); });
     await page.waitForFunction(() => window.__gh.state !== 'playing', null, { timeout: 6000, polling: 20 }).catch(() => {});
     assert((await page.evaluate(() => window.__gh.state)) === 'over', 'level 5: halfway through and far behind, a bus wrecks you');
 
-    await page.evaluate(() => window.__gh.setLevel(20));
+    // Same guard (Letter 011, item 1): without it a car that crashed before halfway left a
+    // finished game, the bus hit nothing, and the check failed about 1 run in 6 for no game reason.
+    await page.evaluate(() => { window.__gh.setLevel(20); window.__gh.setMass(window.__gh.need * 2); });
     await page.waitForFunction(() => window.__gh.levelProgress > 0.5 || window.__gh.state !== 'playing', null, { timeout: 40000, polling: 100 });
+    assert((await page.evaluate(() => window.__gh.state)) === 'playing', 'level 20: test setup: car crashed before halfway');
     const threat = await page.evaluate(() => window.__gh.maxThreat), m = await page.evaluate(t => { const v = window.__gh.setMass(Math.round(t * 1.5)); window.__gh.dropCarAhead('bus'); return v; }, threat);
     // the largest single drop in the next 1.5 s: other small hits may come first
     const biggest = await page.evaluate(() => new Promise(res => { let prev = window.__gh.mass, top = 0; const t0 = performance.now(); (function f() { const c = window.__gh.mass; top = Math.max(top, prev - c); prev = c; if (performance.now() - t0 > 1500) return res(top); requestAnimationFrame(f); })(); }));
