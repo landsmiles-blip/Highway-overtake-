@@ -1,0 +1,10 @@
+level  need   target  average  diff | rise vs previous (limit 2 SE) | casual
+15    13800     -      72.0      -   | (round 2, 200 runs)
+16     17380   66.6    66.3   -0.4 |   -5.8 limit  7.9 ok    | 25.5
+17     21890   64.3    66.5   +2.2 |   +0.3 limit  6.7 ok    | 22.5
+18     27560   62.1    65.0   +2.9 |   -1.5 limit  6.7 ok    | 22.3
+19     34710   59.8    65.0   +5.2 |   +0.0 limit  6.7 ok    | 21.3
+20     43720   57.5    55.0   -2.5 |  -10.0 limit  6.9 ok    | 18.3
+level 3 by win rate: 96.0 vs level 2 96.5 -> not easier: ok
+worst miss this round: 5.2 points (round 3: 11.0)
+VERDICT: PASS

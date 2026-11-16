@@ -400,3 +400,58 @@ final g (middle of [1.2437, 1.2750]) = 1.2594 -> LEVEL_NEEDS [580,660,1460,1810,
 Evidence saved in the repo (scratch folders get wiped): `sim/results/cc-curve-round4-search-part1.log/.json`, `cc-curve-round4-search-part2.log/.json`, `cc-guard-proof.log/.json`, `cc-ad-mock.log/.json`, `cc-ad-override.log`.
 
 **To continue:** (1) read the ledger from rev 40 for the chat session's answer; (2) the progress-printing change to `cc-curve-growth.js`, then the check run; (3) judge, apply `LEVEL_NEEDS` in one edit, commit; (4) the two fixes if agreed; (5) `checks.js` and `fast.js`; (6) ledger report, HANDOVER.md, memory.
+
+---
+
+# Part 3: resumed 2026-11-16 (Mumathai: "i am back can you do an audit then continue please")
+
+## Audit (read-only)
+
+| Item | State |
+|---|---|
+| Git | `HEAD` `996f4f7`; `origin` and the live GitHub branch `206a9de`; uncommitted: only the 4 owner line-ending files |
+| `PROGRESS.md` | identical to commit `996f4f7` (`git diff` empty; last written 11-13 16:33) |
+| Game | `LEVEL_NEEDS` unchanged; line 338 `<script>`; long lines 13 and 335 |
+| Ledger | rev 41; no reply from the chat session, so the mute button and slow-Bridge fix stay unbuilt |
+| Computer | 2.2 GB free; no Chrome, Edge, ChatGPT or Claude desktop; one Node process = npm updating Claude Code (`npm install -g @anthropic-ai/claude-code@2.1.325`), not mine, left alone |
+| Scratch | wiped again; evidence was already in `sim/results/` |
+
+## C1 Fix the stalled check run
+
+- [x] Likely cause: the check ran 10 batches (4,000 games) in one page with no reload; `fast.js` reloads per batch to keep memory flat, and the search guesses (5 batches per page) had finished.
+  Change to `tools/playtest/cc-curve-growth.js`: a fresh page per batch; each batch printed with a time stamp and appended to `<prefix>-check.jsonl` as it finishes; a check-only run refuses to start unless the needs equal the logged search result. `node --check`: syntax OK.
+- [x] The run below finished with every batch in steady time (217 to 381 s each, slower than my 15-20 min estimate for the whole run, but no stall). That supports the hypothesis; it does not prove it, because the old one-page run was not repeated.
+
+## C2 Check run (levels 16-20, both bots, 400 runs, new seeds), output written straight into `sim/results/cc-curve-round4-check*`
+
+- [x] Done 10:53:14 to 11:43:05, exit 0. Full log (`sim/results/cc-curve-round4-check.log`):
+
+```
+undefined
+```
+
+## C3 Judge by the rule set in Letter 012 (`sim/results/cc-curve-round4-judge.txt`)
+
+- [x] **PASS.**
+
+```
+level  need   target  average  diff | rise vs previous (limit 2 SE) | casual
+15    13800     -      72.0      -   | (round 2, 200 runs)
+16     17380   66.6    66.3   -0.4 |   -5.8 limit  7.9 ok    | 25.5
+17     21890   64.3    66.5   +2.2 |   +0.3 limit  6.7 ok    | 22.5
+18     27560   62.1    65.0   +2.9 |   -1.5 limit  6.7 ok    | 22.3
+19     34710   59.8    65.0   +5.2 |   +0.0 limit  6.7 ok    | 21.3
+20     43720   57.5    55.0   -2.5 |  -10.0 limit  6.9 ok    | 18.3
+level 3 by win rate: 96.0 vs level 2 96.5 -> not easier: ok
+worst miss this round: 5.2 points (round 3: 11.0)
+VERDICT: PASS
+```
+
+  Plain reading: every level 16-20 is within 7 points of its target (worst: level 19, +5.2; round 3's worst was 11). No level rises over 2 standard errors. Level 3 is not easier than level 2 by win rate (96.0 against 96.5; I wrote "97" for level 2 in Letter 012, the measured value is 96.5).
+  **Honest note:** levels 17-19 sit flat at 65.0-66.5, then level 20 drops 10 points. The rule allows it; it is a plateau and a step, not a smooth slope. Casual: 25.5 down to 18.3 (reported, not tuned).
+
+## C4 Apply `LEVEL_NEEDS` in one edit
+
+- [x] Old: `[580,660,1200,1600,2100,2450,3000,3700,4400,5200, 6900,8800,11000,13800,16800,20500,25000,28500,33000,39000]`
+  New: `[580,660,1460,1810,2190,2560,3020,3690,4600,5580, 6530,7430,9870,11600,13800,17380,21890,27560,34710,43720]`
+  Checks: "LEVEL_NEEDS equals the chosen set: true | rises every level: true"; "game script parses OK"; line 338 `<script>`; long lines 13 and 335. The comment above the array now says where each number came from.

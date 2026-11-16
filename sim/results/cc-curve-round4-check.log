@@ -1,0 +1,25 @@
+started 11-16 10:53:14 (check run only; fresh page per batch; needs must match the logged search)
+target win % levels 16-20: 66.6 64.3 62.1 59.8 57.5 | mean 62.1
+final g (middle of [1.2437, 1.2750]) = 1.2594 -> LEVEL_NEEDS [580,660,1460,1810,2190,2560,3020,3690,4600,5580,6530,7430,9870,11600,13800,17380,21890,27560,34710,43720]
+needs match the logged search result
+  [10:56:55] average L16: need 17380 win 66.3 crash 10.5 (217 s)
+  [11:00:44] average L17: need 21890 win 66.5 crash 10.5 (228 s)
+  [11:04:35] average L18: need 27560 win 65.0 crash 12.3 (231 s)
+  [11:08:30] average L19: need 34710 win 65.0 crash 14.8 (235 s)
+  [11:12:38] average L20: need 43720 win 55.0 crash 19.0 (248 s)
+  [11:18:34] casual L16: need 17380 win 25.5 crash 13.3 (356 s)
+  [11:24:41] casual L17: need 21890 win 22.5 crash 17.8 (366 s)
+  [11:30:32] casual L18: need 27560 win 22.3 crash 19.3 (350 s)
+  [11:36:43] casual L19: need 34710 win 21.3 crash 23.0 (371 s)
+  [11:43:05] casual L20: need 43720 win 18.3 crash 23.8 (381 s)
+check average L16 need 17380 win 66.3 crash 10.5 avgMass 20360
+check average L17 need 21890 win 66.5 crash 10.5 avgMass 25392
+check average L18 need 27560 win 65.0 crash 12.3 avgMass 29715
+check average L19 need 34710 win 65.0 crash 14.8 avgMass 34495
+check average L20 need 43720 win 55.0 crash 19.0 avgMass 37869
+check casual  L16 need 17380 win 25.5 crash 13.3 avgMass 13819
+check casual  L17 need 21890 win 22.5 crash 17.8 avgMass 15818
+check casual  L18 need 27560 win 22.3 crash 19.3 avgMass 19096
+check casual  L19 need 34710 win 21.3 crash 23.0 avgMass 21113
+check casual  L20 need 43720 win 18.3 crash 23.8 avgMass 25274
+finished 11-16 11:43:05 exit=0

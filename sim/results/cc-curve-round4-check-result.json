@@ -1,0 +1,149 @@
+{
+ "log": [
+  "target win % levels 16-20: 66.6 64.3 62.1 59.8 57.5 | mean 62.1",
+  "final g (middle of [1.2437, 1.2750]) = 1.2594 -> LEVEL_NEEDS [580,660,1460,1810,2190,2560,3020,3690,4600,5580,6530,7430,9870,11600,13800,17380,21890,27560,34710,43720]",
+  "needs match the logged search result",
+  "check average L16 need 17380 win 66.3 crash 10.5 avgMass 20360",
+  "check average L17 need 21890 win 66.5 crash 10.5 avgMass 25392",
+  "check average L18 need 27560 win 65.0 crash 12.3 avgMass 29715",
+  "check average L19 need 34710 win 65.0 crash 14.8 avgMass 34495",
+  "check average L20 need 43720 win 55.0 crash 19.0 avgMass 37869",
+  "check casual  L16 need 17380 win 25.5 crash 13.3 avgMass 13819",
+  "check casual  L17 need 21890 win 22.5 crash 17.8 avgMass 15818",
+  "check casual  L18 need 27560 win 22.3 crash 19.3 avgMass 19096",
+  "check casual  L19 need 34710 win 21.3 crash 23.0 avgMass 21113",
+  "check casual  L20 need 43720 win 18.3 crash 23.8 avgMass 25274"
+ ],
+ "g": 1.259375,
+ "needs": [
+  580,
+  660,
+  1460,
+  1810,
+  2190,
+  2560,
+  3020,
+  3690,
+  4600,
+  5580,
+  6530,
+  7430,
+  9870,
+  11600,
+  13800,
+  17380,
+  21890,
+  27560,
+  34710,
+  43720
+ ],
+ "check": [
+  {
+   "level": 16,
+   "profile": "average",
+   "runs": 400,
+   "win": 0.6625,
+   "crash": 0.105,
+   "avgMass": 20360,
+   "need": 17380,
+   "secs": 217
+  },
+  {
+   "level": 17,
+   "profile": "average",
+   "runs": 400,
+   "win": 0.665,
+   "crash": 0.105,
+   "avgMass": 25392,
+   "need": 21890,
+   "secs": 228
+  },
+  {
+   "level": 18,
+   "profile": "average",
+   "runs": 400,
+   "win": 0.65,
+   "crash": 0.1225,
+   "avgMass": 29715,
+   "need": 27560,
+   "secs": 231
+  },
+  {
+   "level": 19,
+   "profile": "average",
+   "runs": 400,
+   "win": 0.65,
+   "crash": 0.1475,
+   "avgMass": 34495,
+   "need": 34710,
+   "secs": 235
+  },
+  {
+   "level": 20,
+   "profile": "average",
+   "runs": 400,
+   "win": 0.55,
+   "crash": 0.19,
+   "avgMass": 37869,
+   "need": 43720,
+   "secs": 248
+  },
+  {
+   "level": 16,
+   "profile": "casual",
+   "runs": 400,
+   "win": 0.255,
+   "crash": 0.1325,
+   "avgMass": 13819,
+   "need": 17380,
+   "secs": 356
+  },
+  {
+   "level": 17,
+   "profile": "casual",
+   "runs": 400,
+   "win": 0.225,
+   "crash": 0.1775,
+   "avgMass": 15818,
+   "need": 21890,
+   "secs": 366
+  },
+  {
+   "level": 18,
+   "profile": "casual",
+   "runs": 400,
+   "win": 0.2225,
+   "crash": 0.1925,
+   "avgMass": 19096,
+   "need": 27560,
+   "secs": 350
+  },
+  {
+   "level": 19,
+   "profile": "casual",
+   "runs": 400,
+   "win": 0.2125,
+   "crash": 0.23,
+   "avgMass": 21113,
+   "need": 34710,
+   "secs": 371
+  },
+  {
+   "level": 20,
+   "profile": "casual",
+   "runs": 400,
+   "win": 0.1825,
+   "crash": 0.2375,
+   "avgMass": 25274,
+   "need": 43720,
+   "secs": 381
+  }
+ ],
+ "targets": [
+  0.6661111111111109,
+  0.6433333333333331,
+  0.6205555555555553,
+  0.5977777777777775,
+  0.5749999999999997
+ ]
+}

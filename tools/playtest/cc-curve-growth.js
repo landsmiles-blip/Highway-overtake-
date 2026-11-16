@@ -4,7 +4,9 @@
 // g is found by halving an interval on the average bot's mean win rate over levels 16-20 (target: the mean of their targets),
 // 400 runs per level, the same seeds for every guess so guesses compare fairly. The last step is damped: g = middle of the
 // final interval. Then a check run on NEW seeds, both bots, 400 runs, levels 16-20.
-// usage: node tools/playtest/cc-curve-growth.js <out-prefix> [lo=1.15] [hi=1.40] [halvings=3]
+// usage: node tools/playtest/cc-curve-growth.js <out-prefix> [lo=1.15] [hi=1.40] [halvings=3] [expected-needs-csv]
+// Check only (no new guesses): halvings 0 and the interval the search ended with, e.g.
+//   node tools/playtest/cc-curve-growth.js out 1.24375 1.275 0 580,660,...,43720
 const fs = require('fs'), path = require('path');
 const { launch, phonePage, openFast, PROTO } = require('./lib');
 const ROOT = path.resolve(__dirname, '..', '..');
@@ -31,12 +33,17 @@ function runLevel({ level, profile, runs, seedOff }) {
   return { level, profile, runs, win: wins / runs, crash: crashes / runs, avgMass: Math.round(massSum / runs), need: g.need };
 }
 const NEEDS_RE = /const LEVEL_NEEDS\s*=\s*\[[\s\S]*?\]/;
-async function measure(browser, needs, profiles, runs, seedOff, page0) {
-  const src = fs.readFileSync(PROTO, 'utf8'), page = page0 || await phonePage(browser, 390, 844, 1);
-  await openFast(page, 4000 + seedOff % 997, [[src.match(NEEDS_RE)[0], `const LEVEL_NEEDS  = [${needs.join(',')}]`]]);
-  const rows = [];
-  for (const profile of profiles) for (const level of TOP) rows.push(await page.evaluate(runLevel, { level, profile, runs, seedOff }));
-  if (!page0) await page.close();
+// A fresh page per batch keeps memory flat, as fast.js does. On 2026-11-13 the check run played 4,000 games in one page
+// and produced nothing for 1 h 46 min. Each batch is printed and appended to `jsonl` as it finishes, so a stop keeps it.
+async function measure(browser, needs, profiles, runs, seedOff, jsonl) {
+  const src = fs.readFileSync(PROTO, 'utf8'), patch = [[src.match(NEEDS_RE)[0], `const LEVEL_NEEDS  = [${needs.join(',')}]`]], rows = [];
+  for (const profile of profiles) for (const level of TOP) {
+    const page = await phonePage(browser, 390, 844, 1); await openFast(page, 4000 + seedOff % 997, patch);
+    const t = Date.now(), r = await page.evaluate(runLevel, { level, profile, runs, seedOff }); await page.close();
+    r.secs = Math.round((Date.now() - t) / 1000); rows.push(r);
+    console.log(`  [${new Date().toTimeString().slice(0, 8)}] ${profile} L${level}: need ${r.need} win ${(r.win * 100).toFixed(1)} crash ${(r.crash * 100).toFixed(1)} (${r.secs} s)`);
+    if (jsonl) fs.appendFileSync(jsonl, JSON.stringify(r) + '\n');
+  }
   return rows;
 }
 
@@ -56,7 +63,11 @@ async function measure(browser, needs, profiles, runs, seedOff, page0) {
   }
   const gFinal = (lo + hi) / 2, needs = needsFor(gFinal);
   say(`final g (middle of [${lo.toFixed(4)}, ${hi.toFixed(4)}]) = ${gFinal.toFixed(4)} -> LEVEL_NEEDS ${JSON.stringify(needs)}`);
-  const check = await measure(browser, needs, ['average', 'casual'], 400, 2468135);
+  // check-only run (0 halvings): optional 6th argument = the needs the search logged; refuse to run if they differ
+  const expect = process.argv[6];
+  if (expect && needs.join(',') !== expect) throw new Error('needs differ from the logged search result: ' + needs.join(',') + ' vs ' + expect);
+  if (expect) say('needs match the logged search result');
+  const check = await measure(browser, needs, ['average', 'casual'], 400, 2468135, prefix + '-check.jsonl');
   for (const r of check) say(`check ${r.profile.padEnd(7)} L${r.level} need ${r.need} win ${(r.win * 100).toFixed(1)} crash ${(r.crash * 100).toFixed(1)} avgMass ${r.avgMass}`);
   fs.writeFileSync(prefix + '-result.json', JSON.stringify({ log, g: gFinal, needs, check, targets: TOP.map(target) }, null, 1));
   await browser.close();

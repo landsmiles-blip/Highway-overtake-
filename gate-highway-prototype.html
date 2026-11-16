@@ -1522,12 +1522,13 @@
   //  rolling for it matters - a random x2 made clearing the wall depend on
   //  luck instead of choice, which is the opposite of the point.
   //
-  //  Rebuilt from the real game by sim/tune-needs.js, then smoothed by hand. Results are in
-  //  sim/results/. These are bots with guessed skills, not real players.
-  //  Largest number on screen: 5 digits.
+  //  Curve round 4 (Letters 011-012, 2026-11-16): levels 1-2 kept; level 3 from round 3; levels 4-15
+  //  from round 2; levels 16-20 on one growth curve, need = 13800 x 1.259375^(level - 15). Each was
+  //  measured in the real game, nothing nudged by hand: sim/results/cc-curve-*, PROGRESS.md.
+  //  These are bots with guessed skills, not real players. Largest number on screen: 5 digits.
   // ============================================================
-  const LEVEL_NEEDS  = [580,660,1200,1600,2100,2450,3000,3700,4400,5200,
-                        6900,8800,11000,13800,16800,20500,25000,28500,33000,39000];
+  const LEVEL_NEEDS  = [580,660,1460,1810,2190,2560,3020,3690,4600,5580,
+                        6530,7430,9870,11600,13800,17380,21890,27560,34710,43720];
   const LEVEL_ADD    = [30,35,45,50,60,75,90,105,130,155,
                         185,225,265,320,385,460,555,665,800,960];
   const LEVEL_ADDBIG = [95,115,140,165,200,240,285,345,415,495,
