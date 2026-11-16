@@ -1,0 +1,1 @@
+[{"profile":"average","level":1,"runs":100,"win":0.99,"crash":0,"wallFail":0.01,"avgMass":867,"need":580,"avgSecs":33.2,"t800med":27,"carsMin":11,"carsMax":24,"errors":0,"heapMB":23},{"profile":"average","level":2,"runs":100,"win":0.98,"crash":0,"wallFail":0.02,"avgMass":968,"need":660,"avgSecs":33.3,"t800med":23.8,"carsMin":11,"carsMax":24,"errors":0,"heapMB":29}]

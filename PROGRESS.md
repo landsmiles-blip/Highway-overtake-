@@ -455,3 +455,56 @@ VERDICT: PASS
 - [x] Old: `[580,660,1200,1600,2100,2450,3000,3700,4400,5200, 6900,8800,11000,13800,16800,20500,25000,28500,33000,39000]`
   New: `[580,660,1460,1810,2190,2560,3020,3690,4600,5580, 6530,7430,9870,11600,13800,17380,21890,27560,34710,43720]`
   Checks: "LEVEL_NEEDS equals the chosen set: true | rises every level: true"; "game script parses OK"; line 338 `<script>`; long lines 13 and 335. The comment above the array now says where each number came from.
+
+## C5 Ledger: the chat session's answer on the mute button and slow-Bridge fix
+
+- [x] Read at 11:44: ledger still rev 41, no answer. Neither fix is built (Rule 11).
+
+## C6 Final tests on commit `2f46795`
+
+- [x] **`checks.js`: 37 of 37 passed, exit 0** (`sim/results/cc-checks-final.log`; frames in scratch). Full output:
+
+```
+started 11-16 11:44:45 on commit 2f46795
+PASS long lines are only 13 and 335 (found 13,335)
+PASS game script still starts at line 338
+PASS level 1: a bus does not wreck a new player (mass 100 to 80)
+PASS level 2: a bus does not wreck a new player (mass 100 to 80)
+PASS level 5: before the first gate a bus is only a bump
+PASS level 5: test setup: car crashed before halfway
+PASS level 5: halfway through and far behind, a bus wrecks you
+PASS level 20: test setup: car crashed before halfway
+PASS level 20: smashing a bus costs real mass (largest hit 5076, need 43720)
+PASS 390x844: nothing off screen
+PASS 390x844: car clear of the buttons (left: none, centre: none)
+PASS 390x844: no page errors
+PASS 390x844: no outside requests
+PASS 844x390: nothing off screen
+PASS 844x390: car clear of the buttons (left: none, centre: none)
+PASS 844x390: no page errors
+PASS 844x390: no outside requests
+PASS 320x568: nothing off screen
+PASS 320x568: car clear of the buttons (left: none, centre: none)
+PASS 320x568: no page errors
+PASS 320x568: no outside requests
+PASS 820x1180: nothing off screen
+PASS 820x1180: car clear of the buttons (left: none, centre: none)
+PASS 820x1180: no page errors
+PASS 820x1180: no outside requests
+PASS 1440x900: nothing off screen
+PASS 1440x900: car clear of the buttons (left: none, centre: none)
+PASS 1440x900: no page errors
+PASS 1440x900: no outside requests
+PASS 600x600: nothing off screen
+PASS 600x600: car clear of the buttons (left: none, centre: none)
+PASS 600x600: no page errors
+PASS 600x600: no outside requests
+PASS 1920x600: nothing off screen
+PASS 1920x600: car clear of the buttons (left: none, centre: none)
+PASS 1920x600: no page errors
+PASS 1920x600: no outside requests
+all passed
+exit=0 finished 11:46:17
+```
+
+- [ ] **`fast.js` levels 1-20, both bots, 100 runs: NOT finished.** Started 11:46:24; **stopped by the system for low memory** after 2 of 40 batches (average levels 1 and 2: win 99 and 98, 0 errors). Saved in `sim/results/cc-fast-final.json`; `fast.js` resumes from that file and skips saved batches, so a restart runs only the other 38. Not restarted: the system note says to restart only when asked. Memory afterwards: 2.85 GB free; WPS (5 processes, 285 MB) was running.
