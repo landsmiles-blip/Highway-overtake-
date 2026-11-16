@@ -515,3 +515,43 @@ undefined
 ```
 
   Observation, not a test failure: casual jumps from 37 at level 11 to 60 at level 12 (100 runs each; 2 SE is about 13 points). Level 12's wall was not changed today; round 2 measured casual 36 and 40 there with 200 runs. Worth a second measurement. Average-bot rises at 100 runs (for example 70 to 80 at levels 11-12) are within noise (2 SE about 12 points).
+
+---
+
+# Part 4: Letter 014 work (2026-11-16)
+
+Orders: Mumathai, 2026-11-16: "read what claude has for you on the game ... you will discuss with claude ... you will not do anything without tangible reasons".
+Letter 014: yes to the mute button and the slow-Bridge fix (all three agree now).
+
+## S1 Mute button on the pause screen (rule 3.3.3)
+
+- [x] Game: a "Sound: on/off" button on the pause screen, on the same HTML line as Restart (line 338 unchanged; long lines 13 and 335 unchanged; script parses). `Snd` keeps the player's mute and the platform's mute apart. Sounds untouched.
+- [x] Proof, `tools/playtest/cc-mute-proof.js` (`sim/results/cc-mute-proof.log`):
+
+```
+PASS 390x844: Resume, Restart and Sound buttons on screen, not overlapping ("Sound: on")
+PASS 390x844: no page errors
+PASS 844x390: Resume, Restart and Sound buttons on screen, not overlapping ("Sound: on")
+PASS 844x390: no page errors
+PASS 320x568: Resume, Restart and Sound buttons on screen, not overlapping ("Sound: on")
+PASS 320x568: no page errors
+PASS 820x1180: Resume, Restart and Sound buttons on screen, not overlapping ("Sound: on")
+PASS 820x1180: no page errors
+PASS 1440x900: Resume, Restart and Sound buttons on screen, not overlapping ("Sound: on")
+PASS 1440x900: no page errors
+PASS 600x600: Resume, Restart and Sound buttons on screen, not overlapping ("Sound: on")
+PASS 600x600: no page errors
+PASS 1920x600: Resume, Restart and Sound buttons on screen, not overlapping ("Sound: on")
+PASS 1920x600: no page errors
+PASS start: sound on, button says "Sound: on"
+PASS player taps Sound: silent, button says "Sound: off"
+PASS platform un-mutes: still silent (the platform cannot undo the player)
+PASS player taps Sound again: sound back on
+PASS platform mutes: silent, the player setting stays on
+PASS player taps twice while the platform mutes: still silent (the player cannot undo the platform)
+PASS platform un-mutes, player setting on: sound on
+PASS mute test: no page errors
+all passed
+```
+
+  Pictures looked at (390x844, 844x390): the button matches Resume and Restart. **Existing problem found, not changed (Rule 11):** the "PAUSED" title is black on a dark background and hard to read; at 844x390 it sits over the faded "GATE HIGHWAY" title.

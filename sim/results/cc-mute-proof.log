@@ -1,0 +1,23 @@
+PASS 390x844: Resume, Restart and Sound buttons on screen, not overlapping ("Sound: on")
+PASS 390x844: no page errors
+PASS 844x390: Resume, Restart and Sound buttons on screen, not overlapping ("Sound: on")
+PASS 844x390: no page errors
+PASS 320x568: Resume, Restart and Sound buttons on screen, not overlapping ("Sound: on")
+PASS 320x568: no page errors
+PASS 820x1180: Resume, Restart and Sound buttons on screen, not overlapping ("Sound: on")
+PASS 820x1180: no page errors
+PASS 1440x900: Resume, Restart and Sound buttons on screen, not overlapping ("Sound: on")
+PASS 1440x900: no page errors
+PASS 600x600: Resume, Restart and Sound buttons on screen, not overlapping ("Sound: on")
+PASS 600x600: no page errors
+PASS 1920x600: Resume, Restart and Sound buttons on screen, not overlapping ("Sound: on")
+PASS 1920x600: no page errors
+PASS start: sound on, button says "Sound: on"
+PASS player taps Sound: silent, button says "Sound: off"
+PASS platform un-mutes: still silent (the platform cannot undo the player)
+PASS player taps Sound again: sound back on
+PASS platform mutes: silent, the player setting stays on
+PASS player taps twice while the platform mutes: still silent (the player cannot undo the platform)
+PASS platform un-mutes, player setting on: sound on
+PASS mute test: no page errors
+all passed

@@ -313,7 +313,7 @@
     <h1 class="glow-text">PAUSED</h1>
     <div id="pauseBtns">
       <button id="btnResume">Resume</button>
-      <button id="btnRestart">Restart level</button>
+      <button id="btnRestart">Restart level</button><button id="btnMute">Sound: on</button>
     </div>
   </div>
 
@@ -364,7 +364,7 @@
     const VOLUME = { door:0.75, x2:0.95, red:0.8, smash:0.7, bump:0.7, whoosh:0.6, tier:0.7, wall:1, crash:1, clear:0.9, click:0.5 };
     const TRACKS = ['music-steelpan', 'music-song1'];
     let ctx = null, master, musicBus, buffers = {}, engineSrc = null, engineGain = null;
-    let muted = false, current = null, currentGain = null, wanted = 0, musicLoading = false;
+    let muted = false, playerMuted = false, current = null, currentGain = null, wanted = 0, musicLoading = false;   // muted: the platform's; playerMuted: the player's (rule 3.3.3)
     const ext = (function(){ try { return new Audio().canPlayType('audio/ogg; codecs="vorbis"') ? '.ogg' : '.mp3'; } catch(e){ return '.mp3'; } })();
     function load(name){
       if (buffers[name]) return Promise.resolve(buffers[name]);
@@ -391,7 +391,7 @@
     function init(){
       if (ctx || !AC) return;
       try { ctx = new AC(); } catch(e){ ctx = null; return; }
-      master = ctx.createGain(); master.gain.value = muted ? 0 : 1; master.connect(ctx.destination);
+      master = ctx.createGain(); master.gain.value = (muted || playerMuted) ? 0 : 1; master.connect(ctx.destination);
       musicBus = ctx.createGain(); musicBus.gain.value = 0.5; musicBus.connect(master);
       EFFECTS.forEach(load);
       load('engine').then(startEngine);
@@ -427,7 +427,11 @@
         if (ctx && musicLoading) load(TRACKS[wanted]).then(startMusic);
       },
       hold: function(on){ hold = on; if (ctx){ if (on) ctx.suspend(); else ctx.resume(); } },
-      mute: function(on){ muted = on; if (master) master.gain.setValueAtTime(on ? 0 : 1, ctx.currentTime); }
+      // Either mute silences; neither undoes the other (the platform cannot unmute a player who muted, and back).
+      mute: function(on){ muted = on; if (master) master.gain.setValueAtTime((muted || playerMuted) ? 0 : 1, ctx.currentTime); },
+      playerMute: function(on){ playerMuted = on; if (master) master.gain.setValueAtTime((muted || playerMuted) ? 0 : 1, ctx.currentTime); },
+      get playerMuted(){ return playerMuted; },
+      get silent(){ return muted || playerMuted; }
     };
   })();
 
@@ -1922,6 +1926,9 @@
   document.getElementById('btnPause').addEventListener('click', ()=>togglePause());
   document.getElementById('btnResume').addEventListener('click', ()=>resumeGame());
   document.getElementById('btnRestart').addEventListener('click', ()=>{ resumeGame(); startLevel(); });
+  // Player's mute (Playgama rule 3.3.3). Separate from the platform's mute, which Bridge controls.
+  const btnMute = document.getElementById('btnMute');
+  btnMute.addEventListener('click', ()=>{ Snd.playerMute(!Snd.playerMuted); btnMute.textContent = 'Sound: ' + (Snd.playerMuted ? 'off' : 'on'); });
   document.addEventListener('visibilitychange', ()=>{ if(document.hidden) pauseGame(); });
 
   window.GH = { pause: pauseGame, resume: resumeGame, isPaused: ()=>paused, mute: function(on){ Snd.mute(on); } };
