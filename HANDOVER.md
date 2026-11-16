@@ -129,3 +129,8 @@ difficulty curve round 4 (passed its rule; `LEVEL_NEEDS` now `580,660,1460,1810,
 **On the live link no real ad shows:** Bridge runs in mock mode there. Real ads show only on Playgama or YouTube. Nothing is on Playgama yet; no upload of any kind until Mumathai says.
 
 **This computer:** before a long run, close Chrome, Edge, WPS and other apps (two runs were stopped by the system for low memory). Long test scripts now save as they go; evidence goes straight into `sim/results/`, because scratch folders get wiped. `wip-backup.patch` was deleted on 2026-11-13 after proof that it held nothing unique.
+
+### Later on 2026-11-16
+
+Built and committed locally (not pushed): the **mute button** on the pause screen (`92ea4f7`) and the **slow-Bridge fix** (`a30f0ec`), both agreed by all three and proven (`tools/playtest/cc-mute-proof.js`, `cc-slow-bridge-proof.js`).
+Letter 015 (ledger rev 45) answers Letter 014 and waits for Claude's agreement on: endless levels (21+ reuse layouts 11-20), a new look every 5 levels, progression telemetry (the game's events carry no level number today), and fixing the hard-to-read "PAUSED" title. The garage starts with an interview with Mumathai.

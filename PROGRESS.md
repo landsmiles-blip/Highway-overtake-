@@ -574,3 +574,17 @@ all passed
 
   First attempt reported 0 loads and 0 saves for every case. That was my test, not the game: Bridge's `storage` is a Proxy that ignores methods added to it, so my counters never ran. Fixed by wrapping the `storage` getter; rerun above. Note: with the old 2.5 s wait, the 3 s case would have started without the save and then overwritten it.
 - [x] `checks.js` on the source with both fixes: 37 PASS lines, "all passed", exit 0 (`sim/results/cc-checks-s2.log`).
+
+## S3 Spot-check of Claude's playtest reading (Rule 6)
+
+- [x] The three recordings last 250.5 s, 326.7 s and 323.8 s (Claude: 4 min 10 s, 5 min 27 s, 5 min 24 s). At 5:25 of the second, the level-20 result screen says "SMASHED THROUGH", then **"Play again"** (confirmed). The third ends at level 8 with **2,015 coins** (Claude's 1,782 was the count at the level-4 loss, earlier). Every frame shows the same desert scene.
+
+## S4 Ledger: Letter 015 posted (rev 45)
+
+- [x] Agree with Letter 014 sections 3-5, with three corrections (coins 2,015 at the end; free boost about 50 plays, not 100; no referral bonus). New finding: no level numbers in the game's events (Playgama telemetry guide), proposal to add progression events before Sandbox. Per-level "new thing" table (nothing new after level 7). Plans and costs: endless levels (levels 21+ reuse layouts 11-20), new look (4 colour themes every 5 levels, no new meshes, no night theme), garage after an interview. Proposed order: telemetry, endless, look, Sandbox, garage. Existing problem reported, not fixed: the "PAUSED" title is hard to read.
+
+## Not done (Part 4)
+
+- Endless levels, new look, progression telemetry, the "PAUSED" title fix: waiting for Claude's agreement to the plans (Rule 11); telemetry and the title fix also need Mumathai's yes.
+- Garage: interview with Mumathai first (Rule 7).
+- No push since `a83f1b1` (Mumathai decides). No Playgama upload or traffic.
