@@ -449,7 +449,9 @@
     ad: function(){ try { const b = this.bridge; if (b && b.advertisement.isInterstitialSupported) b.advertisement.showInterstitial(); } catch(e){} },
     save: function(lv, c, q){
       try {
-        if (this.bridge) this.bridge.storage.set(['gh_level','gh_coins','gh_quality'], [String(lv), String(c), String(q)]).catch(function(){});
+        // lateLoad: Bridge answered after the wait, so the game started without the saved progress; saving now
+        // would overwrite the real save with level 1 (Letter 012 addendum 1), so this session saves nothing to Bridge.
+        if (this.bridge && !this.lateLoad) this.bridge.storage.set(['gh_level','gh_coins','gh_quality'], [String(lv), String(c), String(q)]).catch(function(){});
         /*SHIP-STRIP-START*/else { localStorage.setItem('gh_level', lv); localStorage.setItem('gh_coins', c); localStorage.setItem('gh_quality', q); }/*SHIP-STRIP-END*/
       } catch(e){}
     },
@@ -457,7 +459,10 @@
       const self = this;
       function fromLocal(){ /*SHIP-STRIP-START*/try { return [localStorage.getItem('gh_level'), localStorage.getItem('gh_coins'), localStorage.getItem('gh_quality')]; } catch(e){}/*SHIP-STRIP-END*/ return [null, null, null]; }
       if (!window.bridge || TEST.bench) return Promise.resolve(fromLocal());
-      const timeout = new Promise(function(res){ setTimeout(function(){ res('late'); }, 2500); });
+      // How long to wait for Bridge: 2.5 s in the test copy; 10 s in the shipped copy, where Bridge's required steps
+      // say gameplay starts after Bridge (the ship build removes the marked part, leaving 10000).
+      const LOAD_WAIT = /*SHIP-STRIP-START*/2500 || /*SHIP-STRIP-END*/10000;
+      const timeout = new Promise(function(res){ setTimeout(function(){ res('late'); }, LOAD_WAIT); });
       const work = window.bridge.initialize().then(function(){
         self.bridge = window.bridge;
         const b = self.bridge;
@@ -466,7 +471,7 @@
         b.platform.on(b.EVENT_NAME.PAUSE_STATE_CHANGED, function(p){ Snd.hold(p); if (p) window.GH.pause(); else window.GH.resume(); });
         return b.storage.get(['gh_level','gh_coins','gh_quality']);
       });
-      return Promise.race([work, timeout]).then(function(d){ return d === 'late' ? fromLocal() : d; }).catch(fromLocal);
+      return Promise.race([work, timeout]).then(function(d){ if (d === 'late'){ self.lateLoad = true; return fromLocal(); } return d; }).catch(fromLocal);
     }
   };
 

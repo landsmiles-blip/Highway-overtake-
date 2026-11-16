@@ -555,3 +555,22 @@ all passed
 ```
 
   Pictures looked at (390x844, 844x390): the button matches Resume and Restart. **Existing problem found, not changed (Rule 11):** the "PAUSED" title is black on a dark background and hard to read; at 844x390 it sits over the faded "GATE HIGHWAY" title.
+
+## S2 Slow-Bridge fix (Letter 012 addendum 1)
+
+- [x] Game: the load wait is `LOAD_WAIT`: 2.5 s in the test copy, 10 s in the shipped copy (ship-strip markers on one line; the shipped file reads `const LOAD_WAIT = 10000;`). If Bridge answers after the wait, `Platform.lateLoad` is set and `save()` writes nothing to Bridge that session. Line 338 unchanged; script parses.
+- [x] Proof on the **shipped build** (`tools/playtest/cc-slow-bridge-proof.js` on a scratch `dist/`, Bridge's `initialize()` delayed in the page; `sim/results/cc-slow-bridge-proof.log`):
+
+```
+shipped wait: const LOAD_WAIT = 10000;
+Bridge delayed 0 s: Bridge ready after 654 ms, game started after 2.8 s, storage.get 1, storage.set 1, page errors 0
+PASS 0 s: progress loaded from Bridge and saved at the level's end
+Bridge delayed 3 s: Bridge ready after 3308 ms, game started after 5.7 s, storage.get 1, storage.set 1, page errors 0
+PASS 3 s: progress loaded from Bridge and saved at the level's end
+Bridge delayed 12 s: Bridge ready after 12168 ms, game started after 12.8 s, storage.get 1, storage.set 0, page errors 0
+PASS 12 s: Bridge answered after the 10 s wait, game started anyway, and nothing was saved (no overwrite)
+all passed
+```
+
+  First attempt reported 0 loads and 0 saves for every case. That was my test, not the game: Bridge's `storage` is a Proxy that ignores methods added to it, so my counters never ran. Fixed by wrapping the `storage` getter; rerun above. Note: with the old 2.5 s wait, the 3 s case would have started without the save and then overwritten it.
+- [x] `checks.js` on the source with both fixes: 37 PASS lines, "all passed", exit 0 (`sim/results/cc-checks-s2.log`).

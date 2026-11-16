@@ -1,0 +1,8 @@
+shipped wait: const LOAD_WAIT = 10000;
+Bridge delayed 0 s: Bridge ready after 654 ms, game started after 2.8 s, storage.get 1, storage.set 1, page errors 0
+PASS 0 s: progress loaded from Bridge and saved at the level's end
+Bridge delayed 3 s: Bridge ready after 3308 ms, game started after 5.7 s, storage.get 1, storage.set 1, page errors 0
+PASS 3 s: progress loaded from Bridge and saved at the level's end
+Bridge delayed 12 s: Bridge ready after 12168 ms, game started after 12.8 s, storage.get 1, storage.set 0, page errors 0
+PASS 12 s: Bridge answered after the 10 s wait, game started anyway, and nothing was saved (no overwrite)
+all passed
