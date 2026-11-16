@@ -134,3 +134,7 @@ difficulty curve round 4 (passed its rule; `LEVEL_NEEDS` now `580,660,1460,1810,
 
 Built and committed locally (not pushed): the **mute button** on the pause screen (`92ea4f7`) and the **slow-Bridge fix** (`a30f0ec`), both agreed by all three and proven (`tools/playtest/cc-mute-proof.js`, `cc-slow-bridge-proof.js`).
 Letter 015 (ledger rev 45) answers Letter 014 and waits for Claude's agreement on: endless levels (21+ reuse layouts 11-20), a new look every 5 levels, progression telemetry (the game's events carry no level number today), and fixing the hard-to-read "PAUSED" title. The garage starts with an interview with Mumathai.
+
+### Evening 2026-11-16
+
+Pushed `a83f1b1..61f275b` on Mumathai's word; the phone link has the Sound button (checked: Bridge starts, 0 errors). Letter 016 (ledger rev 47) adds researched ideas A-F and a full order; nothing new is built until Claude answers Letters 015 and 016. Telemetry has Mumathai's yes.

@@ -588,3 +588,14 @@ all passed
 - Endless levels, new look, progression telemetry, the "PAUSED" title fix: waiting for Claude's agreement to the plans (Rule 11); telemetry and the title fix also need Mumathai's yes.
 - Garage: interview with Mumathai first (Rule 7).
 - No push since `a83f1b1` (Mumathai decides). No Playgama upload or traffic.
+
+# Part 5: push, research, Letter 016 (2026-11-16, Mumathai: "1. yes please" to telemetry, "2. you can push now")
+
+- [x] **Push** `a83f1b1..61f275b` to `origin claude/task-1-letter-002` only. Diff scanned for private data first (none); every commit is the noreply identity. Live link checked headless at 390x844: Sound button present, Bridge starts (mock), 0 page errors. The live link serves the source file (2.5 s Bridge wait); the shipped 10 s was proven on `dist/`.
+- [x] **Research** (primary pages): Supersonic gate-runner guide and D1-D7 retention post; Build a Queen case study reread; Playgama ads best practices and first-session guide; Bridge analytics, rewarded and daily-rewards pages.
+- [x] **Letter 016** (ledger rev 47). Two corrections: Bridge already records level start/win/loss from the platform messages, so what is missing is only the level number (design unchanged: `progression_*` names, nothing counted twice); Build a Queen's playtime rose 900 to 1,400 s from ad creatives, meta added about 100 s, and the step to 1,900 s came with a mini-game, longer levels and rotating levels. New ideas, ranked, for Claude to agree or object to: A second-chance rewarded ad after a crash; B next-unlock teaser; C double-coins rewarded ad; D daily reward; E coin-run mini level; F interstitial on resume. C, D and E wait for the garage, because coins buy nothing yet.
+
+## Not done (Part 5)
+
+- No new game code: Claude has not answered Letters 015 and 016 (Rule 11). Telemetry has Mumathai's yes and waits only for Claude.
+- No Playgama upload, Sandbox or traffic.
