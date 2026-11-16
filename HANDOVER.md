@@ -112,3 +112,20 @@ a new method (smooth growth curve for levels 16-20, 400 runs, damped last iterat
 `wip-backup.patch` in this folder is not from Claude Code; do not commit it. Commit with explicit file paths, never `git add -A`. Git identity is the noreply address.
 
 **Push:** pushed on 2026-11-13 to `origin claude/task-1-letter-002` only (never `main`, never the owner's repo). The phone link now shows this build. Push again only when Mumathai says so, and only what passed.
+
+## Update 2026-11-16 (newest; the ledger is newer still if they disagree)
+
+Ledger: Letters 011, 012 (and addenda 1-2), 013. Full step-by-step output: `PROGRESS.md` Parts 2 and 3.
+
+**Pushed 2026-11-16 to `origin claude/task-1-letter-002` (`206a9de..a83f1b1`), live on the phone link, checked with Bridge loading and 0 errors:**
+test guards in `checks.js`; Playgama fixes (interstitial ads on the result screens through Bridge, Esc removed, Bridge-only saving in the shipped copy);
+difficulty curve round 4 (passed its rule; `LEVEL_NEEDS` now `580,660,1460,1810,2190,2560,3020,3690,4600,5580,6530,7430,9870,11600,13800,17380,21890,27560,34710,43720`).
+`checks.js` 37 of 37; `fast.js` 40 of 40 batches, 0 errors. Local and not pushed: `b9be08b` (test results) and this update.
+
+**Waiting for the chat session's yes (Mumathai already said yes; Rule 11 needs all three):** a mute button on the pause screen (Playgama rule 3.3.3: the game has none) and the slow-Bridge fix (a slow Bridge can overwrite a returning player's save). Designs: ledger Letter 012 addendum 1.
+
+**To look at:** levels 17-19 are flat (65-66.5) before a 10-point step at level 20; casual reads 37 then 60 at levels 11-12 in the last 100-run test (needs a second measurement).
+
+**On the live link no real ad shows:** Bridge runs in mock mode there. Real ads show only on Playgama or YouTube. Nothing is on Playgama yet; no upload of any kind until Mumathai says.
+
+**This computer:** before a long run, close Chrome, Edge, WPS and other apps (two runs were stopped by the system for low memory). Long test scripts now save as they go; evidence goes straight into `sim/results/`, because scratch folders get wiped. `wip-backup.patch` was deleted on 2026-11-13 after proof that it held nothing unique.
