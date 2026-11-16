@@ -507,4 +507,11 @@ all passed
 exit=0 finished 11:46:17
 ```
 
-- [ ] **`fast.js` levels 1-20, both bots, 100 runs: NOT finished.** Started 11:46:24; **stopped by the system for low memory** after 2 of 40 batches (average levels 1 and 2: win 99 and 98, 0 errors). Saved in `sim/results/cc-fast-final.json`; `fast.js` resumes from that file and skips saved batches, so a restart runs only the other 38. Not restarted: the system note says to restart only when asked. Memory afterwards: 2.85 GB free; WPS (5 processes, 285 MB) was running.
+- [x] **`fast.js` levels 1-20, both bots, 100 runs: 40 of 40 batches, 0 page errors, exit 0.** First run stopped by the system for low memory after 2 batches (11:47); resumed from its saved file on Mumathai's go after the push. The game file is the same in `2f46795` and `a83f1b1` (the latter added logs only).
+
+```
+undefined
+undefined
+```
+
+  Observation, not a test failure: casual jumps from 37 at level 11 to 60 at level 12 (100 runs each; 2 SE is about 13 points). Level 12's wall was not changed today; round 2 measured casual 36 and 40 there with 200 runs. Worth a second measurement. Average-bot rises at 100 runs (for example 70 to 80 at levels 11-12) are within noise (2 SE about 12 points).
