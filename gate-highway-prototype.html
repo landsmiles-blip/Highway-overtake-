@@ -180,7 +180,7 @@
   #resultRow{
     display:flex; gap:10px; margin-bottom:22px; flex-wrap:wrap; justify-content:center;
   }
-  #resultRow .board{ background:rgba(244,239,228,0.05); }
+  #resultRow .board{ background:rgba(244,239,228,0.05); } #teaser{ font-family:'Orbitron',sans-serif; font-weight:700; color:var(--amber); font-size:calc(13px * var(--ui-scale)); letter-spacing:1px; margin:-8px 0 18px; text-shadow:0 0 10px rgba(255,179,71,.45); }
   button{
     font-family:'Orbitron',sans-serif;
     font-size:calc(14px * var(--ui-scale));
@@ -634,14 +634,12 @@
 
   // clear-day sky gradient (pale blue overhead fading to a hazy horizon)
   const FOG_COLOR = 0xcfe6f2;
-  const skyTex = canvasTexture((g,w,h)=>{
+  function drawSky(g, w, h, stops){
     const grad = g.createLinearGradient(0,0,0,h);
-    grad.addColorStop(0,'#4f92d6');
-    grad.addColorStop(0.55,'#a9d4ea');
-    grad.addColorStop(0.82,'#dfeef2');
-    grad.addColorStop(1,'#e9f2e4');
+    grad.addColorStop(0, stops[0]); grad.addColorStop(0.55, stops[1]); grad.addColorStop(0.82, stops[2]); grad.addColorStop(1, stops[3]);
     g.fillStyle = grad; g.fillRect(0,0,w,h);
-  }, 8, 256);
+  }
+  const skyTex = canvasTexture((g,w,h)=>drawSky(g, w, h, ['#4f92d6','#a9d4ea','#dfeef2','#e9f2e4']), 8, 256);
   scene.background = skyTex;
   scene.fog = new THREE.Fog(FOG_COLOR, 34, 155);
 
@@ -750,6 +748,24 @@
   const trunkMat = new THREE.MeshStandardMaterial({ color:0x6b4a30, roughness:0.9 });
   const foliageMat = new THREE.MeshStandardMaterial({ color:0x4d8a4a, roughness:0.85 });
   const bushMat = new THREE.MeshStandardMaterial({ color:0x5c9a52, roughness:0.85 });
+  // New look every 5 levels (Letter 015-017): four daytime colour themes that cycle every 20 levels. Only
+  // colours change (sky, fog, ground, hills, trees, light), so the draw count and frame rate stay the same.
+  // No night theme: the coloured door symbols must stay easy to read. Theme 0 is the original desert.
+  const THEMES = [
+    { name:'DESERT',  sky:['#4f92d6','#a9d4ea','#dfeef2','#e9f2e4'], fog:0xcfe6f2, ground:0xb8a06a, hills:0x93a6bb, leaf:0x4d8a4a, bush:0x5c9a52, hemiSky:0xbfe3ff, hemiGround:0xc9b088, sun:0xfff6e0 },
+    { name:'MEADOW',  sky:['#3f86d0','#9fd0ec','#d9eef0','#e4f1dc'], fog:0xcfe7e4, ground:0x3f6a26, hills:0x7f9a8c, leaf:0x356f35, bush:0x4a8c3f, hemiSky:0xc4e6ff, hemiGround:0x8fb06a, sun:0xfff8e8 },
+    { name:'SNOW',    sky:['#5b8fc4','#b3cfe6','#e3edf4','#f0f4f7'], fog:0xe2ebf2, ground:0xe4eaee, hills:0xaebccb, leaf:0x2f5c46, bush:0x4f7d66, hemiSky:0xd8ecff, hemiGround:0xd9e2e8, sun:0xf4f8ff },
+    { name:'SUNSET',  sky:['#d9744a','#f2a979','#f8d6ad','#fbe6c8'], fog:0xf2d3b2, ground:0x946032, hills:0x9c7f8c, leaf:0x5a7a3a, bush:0x6f8a45, hemiSky:0xffd6b0, hemiGround:0xb98c5c, sun:0xffd9a8 }
+  ];
+  function themeFor(lv){ return Math.floor((Math.max(1, lv) - 1) / 5) % THEMES.length; }
+  let themeNow = 0;
+  function applyTheme(i){
+    const t = THEMES[i]; themeNow = i;
+    drawSky(skyTex.image.getContext('2d'), skyTex.image.width, skyTex.image.height, t.sky); skyTex.needsUpdate = true;
+    scene.fog.color.setHex(t.fog); groundMat.color.setHex(t.ground); mountainMat.color.setHex(t.hills);
+    foliageMat.color.setHex(t.leaf); bushMat.color.setHex(t.bush);
+    fillLight.color.setHex(t.hemiSky); fillLight.groundColor.setHex(t.hemiGround); dirLight.color.setHex(t.sun);
+  }
   const rockMat = new THREE.MeshStandardMaterial({ color:0x8a8378, roughness:0.95 });
   const poleMat = new THREE.MeshStandardMaterial({ color:0x5a4632, roughness:0.85 });
 
@@ -1793,6 +1809,7 @@
     spawnBarricade();
     state = 'playing';
     attemptRevived = false;
+    if (themeFor(level) !== themeNow) applyTheme(themeFor(level));
     Snd.level(level); Platform.msg('level_started'); Platform.track('progression_started', progressData());
     updateHud(true);
     boostWrap.classList.remove('show');
@@ -2566,6 +2583,14 @@
     if(smash.t <= 0) finishSmash();
   }
 
+  // A reason to play on (Playgama first-session guide: "a next level teaser"): two levels before the road
+  // changes, the win screen says so.
+  function teaserLine(next){
+    const until = (5 - ((next - 1) % 5)) % 5;   // levels from `next` until a new theme starts (0: next is new)
+    if (until > 1) return '';
+    const name = THEMES[themeFor(next + until)].name;
+    return '<div id="teaser">' + (until === 0 ? 'NEW ROAD NEXT LEVEL: ' : 'NEW ROAD IN 2 LEVELS: ') + name + '</div>';
+  }
   function finishSmash(){
     const cfg = levelCfg(level);
     const earned = smash ? smash.earned : 50;
@@ -2577,6 +2602,7 @@
       '<div id="resultRow">' +
       '<div class="board wide"><span class="label">COINS +</span><span class="value">' + earned + '</span></div>' +
       '</div>' +
+      teaserLine(level + 1) +
       '<button id="nextBtn">Level ' + (level + 1) + '</button>';
     overlay.style.display = 'flex'; Platform.ad();   // level won: a natural pause before the next one
     document.getElementById('nextBtn').addEventListener('click', function(){
@@ -3054,6 +3080,7 @@
   /*SHIP-STRIP-START*/
   window.__gh = {
     get state(){ return state; },
+    get theme(){ return THEMES[themeNow].name; },
     get mass(){ return mass; },
     get level(){ return level; },
     get need(){ return levelCfg(level).need; },

@@ -1,0 +1,26 @@
+PASS level 1: theme DESERT
+PASS level 6: theme MEADOW
+PASS level 11: theme SNOW
+PASS level 16: theme SUNSET
+PASS 390x844: no page errors across the four themes
+PASS 844x390: no page errors across the four themes
+PASS 320x568: no page errors across the four themes
+PASS 820x1180: no page errors across the four themes
+PASS 1440x900: no page errors across the four themes
+PASS 600x600: no page errors across the four themes
+PASS 1920x600: no page errors across the four themes
+PASS level 5: theme DESERT
+PASS level 10: theme MEADOW
+PASS level 21: theme DESERT
+PASS level 26: theme MEADOW
+PASS level 36: theme SUNSET
+PASS level 41: theme DESERT
+draw calls (3 s averages, random traffic): L11 SNOW 208, L21 DESERT 219, L16 SUNSET 217, L26 MEADOW 215
+PASS same layout, other theme: draw calls within traffic noise (15 percent)
+PASS win screen after level 3: ""
+PASS win screen after level 4: "NEW ROAD IN 2 LEVELS: MEADOW"
+PASS win screen after level 5: "NEW ROAD NEXT LEVEL: MEADOW"
+PASS win screen after level 19: "NEW ROAD IN 2 LEVELS: DESERT"
+PASS win screen after level 20: "NEW ROAD NEXT LEVEL: DESERT"
+PASS no page errors
+all passed

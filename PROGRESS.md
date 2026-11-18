@@ -692,3 +692,44 @@ worst win difference 15 points; page errors 0 ; batches 20
 Reading: differences average about 0 and the largest is 15 points (casual 25 vs 15). With 100 runs per level, about plus or minus 14 points is ordinary noise between two runs, and one such gap in 20 comparisons is expected. Level 21 (average bot) wins 78 against level 20's 53 in the 11-16 run: the drop Letter 015 predicted (about 74 vs 55) is real; Letter 018 sets its refutation test for real players.
 
 `checks.js` (`sim/results/cc-checks-endless.log`): 40 PASS (37 plus 3 new endless checks), `all passed`, exit 0. Ship build 1.1.0 passes its scans.
+
+## S3 New look every 5 levels + "new road" teaser (idea B): done
+
+Change: four daytime themes, colours only (sky gradient redrawn, fog, ground, hills, trees, bushes, hemisphere and sun light): DESERT (the original, unchanged), MEADOW, SNOW, SUNSET. Theme = floor((level-1)/5) mod 4, on the real level, so the cycle is 20 levels while layouts repeat every 10 (level 21 plays like 11, looks like 1). No night theme, no new meshes. Win screen: "NEW ROAD IN 2 LEVELS: <name>" and "NEW ROAD NEXT LEVEL: <name>" (Playgama first-session guide, "a next level teaser"). Sound untouched.
+
+**Falsified my own first colours.** The first build passed every check, but the pictures showed MEADOW's green ground and SUNSET's ground both rendered as pale yellow: the scene's bright light clips light ground colours (DESERT too). Measured pixels at 844x390: MEADOW `#ffffc1`, SUNSET `#f7ffa5`, nearly the same. Rendered darker candidates in memory and measured: MEADOW 0x3f6a26 renders `#7ed852` (grass), SUNSET 0x946032 renders `#e4be5c` (gold). Used those. Final measured ground / sky-top: DESERT `#ffffdb` / `#5898d8`; MEADOW `#7ed852` / `#488dd3`; SNOW `#ffffff` / `#6395c7`; SUNSET `#ffb656` / `#db794f`.
+
+Two other failures on the way, both mine: the teaser CSS added a line in the page head and moved the Three.js line off 335 (caught, put on the existing line; line 338 is `<script>`, long lines 13 and 335 restored); the test read a stale result screen (`setLevel` hides it but keeps its contents; the test now clears it).
+
+`node tools/playtest/cc-look-proof.js sim/results/look` (`sim/results/cc-look-proof.log`; pictures of every theme at all 7 frames in `sim/results/look/`):
+```
+PASS level 1: theme DESERT
+PASS level 6: theme MEADOW
+PASS level 11: theme SNOW
+PASS level 16: theme SUNSET
+PASS 390x844: no page errors across the four themes
+PASS 844x390: no page errors across the four themes
+PASS 320x568: no page errors across the four themes
+PASS 820x1180: no page errors across the four themes
+PASS 1440x900: no page errors across the four themes
+PASS 600x600: no page errors across the four themes
+PASS 1920x600: no page errors across the four themes
+PASS level 5: theme DESERT
+PASS level 10: theme MEADOW
+PASS level 21: theme DESERT
+PASS level 26: theme MEADOW
+PASS level 36: theme SUNSET
+PASS level 41: theme DESERT
+draw calls (3 s averages, random traffic): L11 SNOW 208, L21 DESERT 219, L16 SUNSET 217, L26 MEADOW 215
+PASS same layout, other theme: draw calls within traffic noise (15 percent)
+PASS win screen after level 3: ""
+PASS win screen after level 4: "NEW ROAD IN 2 LEVELS: MEADOW"
+PASS win screen after level 5: "NEW ROAD NEXT LEVEL: MEADOW"
+PASS win screen after level 19: "NEW ROAD IN 2 LEVELS: DESERT"
+PASS win screen after level 20: "NEW ROAD NEXT LEVEL: DESERT"
+PASS no page errors
+all passed
+```
+`checks.js` (`sim/results/cc-checks-look.log`): 40 PASS, `all passed`, exit 0. Ship build 1.1.0 passes its scans.
+
+Not proven: frame rate on a real phone per theme (draw calls are equal; colours cost nothing extra on the GPU, but no phone measurement was made). Tony has to judge the look.
