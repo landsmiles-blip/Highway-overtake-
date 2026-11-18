@@ -60,6 +60,19 @@ const assert = (ok, msg) => { console.log((ok ? 'PASS ' : 'FAIL ') + msg); if (!
     assert(biggest > need * 0.005, `level 20: smashing a bus costs real mass (largest hit ${biggest}, need ${need})`);
     await page.close();
   }
+  // Endless levels (Letter 017): level 21 plays level 11's layout, keeps its own number, and runs.
+  {
+    const page = await phonePage(browser, 390, 844, 1); await openReal(page);
+    const same = await page.evaluate(() => [[21, 11], [30, 20], [31, 11]].every(([a, b]) =>
+      window.__gh.needFor(a) === window.__gh.needFor(b) && JSON.stringify(window.__gh.levelTiming(a)) === JSON.stringify(window.__gh.levelTiming(b))));
+    assert(same, 'endless: levels 21, 30 and 31 use the layouts of 11, 20 and 11');
+    await page.evaluate(() => window.__gh.setLevel(21));
+    await new Promise(r => setTimeout(r, 3000));
+    const s = await page.evaluate(() => ({ level: window.__gh.level, state: window.__gh.state, need: window.__gh.need, need11: window.__gh.needFor(11) }));
+    assert(s.level === 21 && s.state === 'playing' && s.need === s.need11, `endless: level 21 starts and runs as level 21 with level 11's need (${JSON.stringify(s)})`);
+    assert(page.errors.length === 0, 'endless: no page errors at level 21');
+    await page.close();
+  }
   // Every frame from rule 2: start, then left lane with a big car. Pictures are for looking at.
   report.frames = [];
   for (const [w, h] of FRAMES) {

@@ -1,0 +1,18 @@
+PASS level 21 uses level 11's layout (need 6530 = 6530; every config value equal)
+PASS level 25 uses level 15's layout (need 13800 = 13800; every config value equal)
+PASS level 30 uses level 20's layout (need 43720 = 43720; every config value equal)
+PASS level 31 uses level 11's layout (need 6530 = 6530; every config value equal)
+PASS level 45 uses level 15's layout (need 13800 = 13800; every config value equal)
+PASS level 100 uses level 20's layout (need 43720 = 43720; every config value equal)
+PASS levels 1-20 unchanged (needs at 1, 10, 19, 20: 580, 5580, 34710, 43720)
+gate labels  L11: +185 +330 +595  L21: +185 +330 +595  L20: +1.7k +3.1k +960 /2
+PASS level 21 gates show level 11 values, not level 20 values
+PASS level 23 telemetry: {"level_id":13,"step_index":23,"revived":false}
+PASS after winning level 20 the button says "Level 21"
+PASS save after the win: gh_level 21, gh_ver 1
+PASS the button starts level 21
+PASS after a reload the game opens on level 21
+old-format save written: [20,1500,null]
+PASS old save without gh_ver loads as level 20, coins 1500
+PASS no page errors
+all passed

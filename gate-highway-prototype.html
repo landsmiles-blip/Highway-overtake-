@@ -441,6 +441,9 @@
   //  still runs and saves to this browser; the shipped copy saves only through Bridge
   //  (Playgama rule 3.2.1: the ship build strips the browser-storage lines below).
   // ============================================================
+  // Save format version (Playgama save guide: version every save, migrate old data on load). Version 1 is
+  // the format before it was written, so a save without gh_ver reads exactly as version 1.
+  const SAVE_VERSION = '1';
   const Platform = {
     bridge: null,
     msg: function(m){ try { if (this.bridge) this.bridge.platform.sendMessage(m); } catch(e){} },
@@ -455,8 +458,8 @@
       try {
         // lateLoad: Bridge answered after the wait, so the game started without the saved progress; saving now
         // would overwrite the real save with level 1 (Letter 012 addendum 1), so this session saves nothing to Bridge.
-        if (this.bridge && !this.lateLoad) this.bridge.storage.set(['gh_level','gh_coins','gh_quality'], [String(lv), String(c), String(q)]).catch(function(){});
-        /*SHIP-STRIP-START*/else { localStorage.setItem('gh_level', lv); localStorage.setItem('gh_coins', c); localStorage.setItem('gh_quality', q); }/*SHIP-STRIP-END*/
+        if (this.bridge && !this.lateLoad) this.bridge.storage.set(['gh_level','gh_coins','gh_quality','gh_ver'], [String(lv), String(c), String(q), SAVE_VERSION]).catch(function(){});
+        /*SHIP-STRIP-START*/else { localStorage.setItem('gh_level', lv); localStorage.setItem('gh_coins', c); localStorage.setItem('gh_quality', q); localStorage.setItem('gh_ver', SAVE_VERSION); }/*SHIP-STRIP-END*/
       } catch(e){}
     },
     load: function(){
@@ -1553,7 +1556,7 @@
   // gate definitions are built per level, so the numbers grow with the game
   // instead of showing +50 / +150 for all twenty levels
   function gatesForLevel(lv){
-    const i = Math.min(LEVEL_ADD.length - 1, Math.max(0, lv - 1));
+    const i = layoutSlot(lv) - 1;
     const a = LEVEL_ADD[i], big = LEVEL_ADDBIG[i];
     const m = Math.round(Math.sqrt(a * big) / 5) * 5;   // between the two, never equal to either
     return {
@@ -1603,9 +1606,11 @@
       maxCars: lv <= 2 ? 32 : Math.round(Math.min(46, 32 + (lv - 2) * 0.8))
     };
   });
-  function levelCfg(lv){ return LEVELS[Math.min(LEVELS.length - 1, Math.max(0, lv - 1))]; }
-  // Which of the 20 layouts a level plays (bounded, for telemetry's level_id).
-  function layoutSlot(lv){ return Math.min(LEVELS.length, Math.max(1, lv)); }
+  // Endless levels (Letter 015-017): levels 1-20 play their own layouts; from 21 on the measured layouts of
+  // 11-20 repeat in order (21 plays as 11, 30 as 20, 31 as 11 again) while the level number keeps counting.
+  // Difficulty stays inside the band the curve rounds measured, so nothing new needs tuning.
+  function layoutSlot(lv){ return lv <= LEVELS.length ? Math.max(1, lv) : 11 + ((lv - 21) % 10); }
+  function levelCfg(lv){ return LEVELS[layoutSlot(lv) - 1]; }
   let attemptRevived = false;   // set by the second chance (idea A); telemetry keeps revived runs apart
   function progressData(extra){
     const d = { level_id: layoutSlot(level), step_index: level, revived: attemptRevived };
@@ -2566,18 +2571,17 @@
     const earned = smash ? smash.earned : 50;
     clearSmash();
     disposeBarricade();
-    const last = level >= LEVELS.length;
     Snd.play('clear');
     overlay.innerHTML =
       '<h1 class="glow-text" style="color:var(--green);">SMASHED THROUGH</h1>' +
       '<div id="resultRow">' +
       '<div class="board wide"><span class="label">COINS +</span><span class="value">' + earned + '</span></div>' +
       '</div>' +
-      '<button id="nextBtn">' + (last ? 'Play again' : 'Level ' + (level + 1)) + '</button>';
+      '<button id="nextBtn">Level ' + (level + 1) + '</button>';
     overlay.style.display = 'flex'; Platform.ad();   // level won: a natural pause before the next one
     document.getElementById('nextBtn').addEventListener('click', function(){
       Snd.play('click');
-      if(last) level = 1; else level += 1;
+      level += 1;
       startLevel();
       overlay.style.display = 'none';
     });
@@ -2592,7 +2596,7 @@
     coins += earned;
     Snd.play('wall');
     Platform.msg('level_completed'); Platform.track('progression_completed', progressData());
-    Platform.save(level >= LEVELS.length ? 1 : level + 1, coins, Quality.level);
+    Platform.save(level + 1, coins, Quality.level);
     updateHud(true);
     punch(document.getElementById('coinBoard'));
     startSmash();
@@ -3301,7 +3305,7 @@
     overlay.style.display = 'none';
     Platform.load().then(function(d){
       const lv = parseInt(d && d[0], 10), c = parseInt(d && d[1], 10), q = parseInt(d && d[2], 10);
-      level = lv >= 1 && lv <= LEVELS.length ? lv : 1;
+      level = lv >= 1 && lv <= 100000 ? lv : 1;   // any real level; endless levels have no top
       coins = c >= 0 ? c : 0;
       if (q >= 1 && q <= 3){ Quality.level = q; Quality.apply(); }
       startLevel();

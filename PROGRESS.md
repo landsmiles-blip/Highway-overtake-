@@ -635,3 +635,60 @@ Ship build `node tools/ship/build.js 1.1.0`: URL scan as pinned, no localStorage
 `checks.js` (`sim/results/cc-checks-telemetry.log`): 37 PASS, `all passed`, exit 0.
 
 Not proven here: a hidden tab is not tested directly; it goes through the same `pauseGame()` as the 5 s pause test (`visibilitychange` handler). Real Playgama receipt of the events is provable only after upload.
+
+## S2 Endless levels: done
+
+Change: `layoutSlot(lv)`: levels 1-20 play their own layouts; 21+ replay 11-20 in order (21 as 11, 30 as 20, 31 as 11). `levelCfg` and `gatesForLevel` both go through it (the gate table had its own cap at 20, so without this level 21 would have shown level 20's gate values). No "Play again" after level 20: the button always says "Level N+1"; the save keeps the real level; boot accepts any level 1-100000. Save version `gh_ver` = "1" written with every save (Playgama save guide); a save without it reads as version 1 (the same format).
+
+Found, not changed: the test hook `__gh.poolFor` is broken (level configs have no `pool` any more); nothing in the game uses it. I compare whole configs instead.
+
+`node tools/playtest/cc-endless-proof.js` (`sim/results/cc-endless-proof.log`; two earlier runs failed on my test, not the game: `poolFor` broken, then a random red door counted as a layout difference):
+```
+PASS level 21 uses level 11's layout (need 6530 = 6530; every config value equal)
+PASS level 25 uses level 15's layout (need 13800 = 13800; every config value equal)
+PASS level 30 uses level 20's layout (need 43720 = 43720; every config value equal)
+PASS level 31 uses level 11's layout (need 6530 = 6530; every config value equal)
+PASS level 45 uses level 15's layout (need 13800 = 13800; every config value equal)
+PASS level 100 uses level 20's layout (need 43720 = 43720; every config value equal)
+PASS levels 1-20 unchanged (needs at 1, 10, 19, 20: 580, 5580, 34710, 43720)
+gate labels  L11: +185 +330 +595  L21: +185 +330 +595  L20: +1.7k +3.1k +960 /2
+PASS level 21 gates show level 11 values, not level 20 values
+PASS level 23 telemetry: {"level_id":13,"step_index":23,"revived":false}
+PASS after winning level 20 the button says "Level 21"
+PASS save after the win: gh_level 21, gh_ver 1
+PASS the button starts level 21
+PASS after a reload the game opens on level 21
+old-format save written: [20,1500,null]
+PASS old save without gh_ver loads as level 20, coins 1500
+PASS no page errors
+all passed
+```
+
+`fast.js` levels 21-30, 100 runs, average and casual bots (`sim/results/cc-fast-endless.log`), against the same slots from the 11-16 run (`cc-fast-final.log`); comparison in `sim/results/cc-fast-endless-compare.txt`:
+```
+profile  lvl  win  crash wall err | slot  win  crash wall | diff
+average   21   78     4   18   0 |   11   70     4   26 | 8
+average   22   83     3   14   0 |   12   80     8   12 | 3
+average   23   84     4   12   0 |   13   77     7   16 | 7
+average   24   77     8   15   0 |   14   77     9   14 | 0
+average   25   75     5   20   0 |   15   75     5   20 | 0
+average   26   67     7   26   0 |   16   69    12   19 | -2
+average   27   68     9   23   0 |   17   57    12   31 | 11
+average   28   54    18   28   0 |   18   64    11   25 | -10
+average   29   56    13   31   0 |   19   54    16   30 | 2
+average   30   51    21   28   0 |   20   53    28   19 | -2
+casual    21   42     2   56   0 |   11   37     5   58 | 5
+casual    22   49     6   45   0 |   12   60     8   32 | -11
+casual    23   39    12   49   0 |   13   39     7   54 | 0
+casual    24   40     7   53   0 |   14   39     9   52 | 1
+casual    25   45     6   49   0 |   15   30    12   58 | 15
+casual    26   27    19   54   0 |   16   28    13   59 | -1
+casual    27   20    13   67   0 |   17   29    11   60 | -9
+casual    28   26    15   59   0 |   18   18    25   57 | 8
+casual    29   24    22   54   0 |   19   31    22   47 | -7
+casual    30   12    21   67   0 |   20   16    18   66 | -4
+worst win difference 15 points; page errors 0 ; batches 20
+```
+Reading: differences average about 0 and the largest is 15 points (casual 25 vs 15). With 100 runs per level, about plus or minus 14 points is ordinary noise between two runs, and one such gap in 20 comparisons is expected. Level 21 (average bot) wins 78 against level 20's 53 in the 11-16 run: the drop Letter 015 predicted (about 74 vs 55) is real; Letter 018 sets its refutation test for real players.
+
+`checks.js` (`sim/results/cc-checks-endless.log`): 40 PASS (37 plus 3 new endless checks), `all passed`, exit 0. Ship build 1.1.0 passes its scans.
