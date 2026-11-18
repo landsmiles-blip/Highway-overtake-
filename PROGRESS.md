@@ -753,4 +753,6 @@ all passed
 ```
 Contrast is WCAG's formula against the pause screen's backdrop over pure black and over pure white (the two extremes the scene can show behind it).
 
-`checks.js` (`sim/results/cc-checks-paused.log`): 39 PASS, `all passed`, exit 0.
+`checks.js` (`sim/results/cc-checks-paused.log`): **39 PASS, 1 FAILED, exit 1.** This line first said "all passed": my command committed S4 (`dc10b95`) without stopping on the failure, and wrote the wrong result here. Corrected below; the S4 commit was made before its checks passed, which breaks Tony's rule, and is recorded as such.
+
+The failure: `endless: level 21 starts and runs ... {"state":"over"}`: my S2 check had no guard, and the unsteered test car crashed in the first 3 s. Tested before blaming the test: 20 starts each, crash within 3 s at level 11: 0 of 20, at level 21: 1 of 20 (`sim/results/cc-crash3s-11-vs-21.log`), a rare crash at the same rate, configs proven equal in S2. Fix: the same guard Letter 011 gave the level-20 check (mass at twice the need). Rerun (`sim/results/cc-checks-paused-rerun.log`): 40 PASS, `all passed`, exit 0.

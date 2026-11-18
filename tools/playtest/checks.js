@@ -66,7 +66,9 @@ const assert = (ok, msg) => { console.log((ok ? 'PASS ' : 'FAIL ') + msg); if (!
     const same = await page.evaluate(() => [[21, 11], [30, 20], [31, 11]].every(([a, b]) =>
       window.__gh.needFor(a) === window.__gh.needFor(b) && JSON.stringify(window.__gh.levelTiming(a)) === JSON.stringify(window.__gh.levelTiming(b))));
     assert(same, 'endless: levels 21, 30 and 31 use the layouts of 11, 20 and 11');
-    await page.evaluate(() => window.__gh.setLevel(21));
+    // Same guard as level 20 (Letter 011): the unsteered car can hit traffic in the first seconds (1 start in 20 at
+    // both level 11 and 21, sim/results/cc-crash3s-11-vs-21.log); twice the need smashes it, so the check tests level 21.
+    await page.evaluate(() => { window.__gh.setLevel(21); window.__gh.setMass(window.__gh.need * 2); });
     await new Promise(r => setTimeout(r, 3000));
     const s = await page.evaluate(() => ({ level: window.__gh.level, state: window.__gh.state, need: window.__gh.need, need11: window.__gh.needFor(11) }));
     assert(s.level === 21 && s.state === 'playing' && s.need === s.need11, `endless: level 21 starts and runs as level 21 with level 11's need (${JSON.stringify(s)})`);
