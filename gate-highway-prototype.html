@@ -267,7 +267,7 @@
     flex-direction:column; align-items:center; justify-content:center; gap:24px;
     background:rgba(6,7,18,.82); backdrop-filter:blur(3px);
   }
-  #pauseScreen.show{ display:flex; }
+  #pauseScreen.show{ display:flex; } /* PAUSED was black on the dark pause screen (rule 1.6) */ #pauseScreen h1{ margin:0; color:var(--cyan); font-family:'Orbitron',sans-serif; font-size:calc(30px * var(--ui-scale)); letter-spacing:2px; }
   #pauseBtns{ display:flex; flex-direction:column; gap:12px; }
   #pauseScreen button{
     font-family:inherit; font-size:16px; padding:14px 34px; border-radius:14px;
@@ -1952,6 +1952,8 @@
     gasHeld = false; brakeHeld = false; dragging = false;
     btnGas.classList.remove('held'); btnBrake.classList.remove('held');
     pauseScreen.classList.add('show');
+    // the fading GATE HIGHWAY title sat under PAUSED on wide screens: a pause ends it at once
+    const ts = document.getElementById('titleSplash'); if (ts) ts.remove();
     Snd.hold(true); Platform.msg('level_paused');
   }
   function resumeGame(){

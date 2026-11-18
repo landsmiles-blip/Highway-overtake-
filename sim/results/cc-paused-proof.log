@@ -1,0 +1,29 @@
+PASS 390x844: GATE HIGHWAY title gone when paused (it was on screen before: true)
+PASS 390x844: PAUSED rgb(77, 232, 255), contrast 13.8 on the darkest backdrop, 8.4 on the lightest
+PASS 390x844: PAUSED on screen and clear of the buttons
+PASS 390x844: no page errors
+PASS 844x390: GATE HIGHWAY title gone when paused (it was on screen before: true)
+PASS 844x390: PAUSED rgb(77, 232, 255), contrast 13.8 on the darkest backdrop, 8.4 on the lightest
+PASS 844x390: PAUSED on screen and clear of the buttons
+PASS 844x390: no page errors
+PASS 320x568: GATE HIGHWAY title gone when paused (it was on screen before: true)
+PASS 320x568: PAUSED rgb(77, 232, 255), contrast 13.8 on the darkest backdrop, 8.4 on the lightest
+PASS 320x568: PAUSED on screen and clear of the buttons
+PASS 320x568: no page errors
+PASS 820x1180: GATE HIGHWAY title gone when paused (it was on screen before: true)
+PASS 820x1180: PAUSED rgb(77, 232, 255), contrast 13.8 on the darkest backdrop, 8.4 on the lightest
+PASS 820x1180: PAUSED on screen and clear of the buttons
+PASS 820x1180: no page errors
+PASS 1440x900: GATE HIGHWAY title gone when paused (it was on screen before: true)
+PASS 1440x900: PAUSED rgb(77, 232, 255), contrast 13.8 on the darkest backdrop, 8.4 on the lightest
+PASS 1440x900: PAUSED on screen and clear of the buttons
+PASS 1440x900: no page errors
+PASS 600x600: GATE HIGHWAY title gone when paused (it was on screen before: true)
+PASS 600x600: PAUSED rgb(77, 232, 255), contrast 13.8 on the darkest backdrop, 8.4 on the lightest
+PASS 600x600: PAUSED on screen and clear of the buttons
+PASS 600x600: no page errors
+PASS 1920x600: GATE HIGHWAY title gone when paused (it was on screen before: true)
+PASS 1920x600: PAUSED rgb(77, 232, 255), contrast 13.8 on the darkest backdrop, 8.4 on the lightest
+PASS 1920x600: PAUSED on screen and clear of the buttons
+PASS 1920x600: no page errors
+all passed

@@ -733,3 +733,24 @@ all passed
 `checks.js` (`sim/results/cc-checks-look.log`): 40 PASS, `all passed`, exit 0. Ship build 1.1.0 passes its scans.
 
 Not proven: frame rate on a real phone per theme (draw calls are equal; colours cost nothing extra on the GPU, but no phone measurement was made). Tony has to judge the look.
+
+## S4 PAUSED title (Tony: yes): done
+
+Change: `#pauseScreen h1` now cyan Orbitron like the other titles (it had no colour rule, so it was black on the dark pause screen); pausing removes the fading GATE HIGHWAY title at once, so the two never sit on top of each other. CSS on the existing line, so lines 13, 335 and 338 are unchanged.
+
+`node tools/playtest/cc-paused-proof.js sim/results/paused` (`sim/results/cc-paused-proof.log`; pictures in `sim/results/paused/`), paused right after boot while the title was still up:
+```
+PASS 390x844: GATE HIGHWAY title gone when paused (it was on screen before: true)
+PASS 390x844: PAUSED rgb(77, 232, 255), contrast 13.8 on the darkest backdrop, 8.4 on the lightest
+PASS 390x844: PAUSED on screen and clear of the buttons
+PASS 390x844: no page errors
+PASS 844x390: GATE HIGHWAY title gone when paused (it was on screen before: true)
+PASS 844x390: PAUSED rgb(77, 232, 255), contrast 13.8 on the darkest backdrop, 8.4 on the lightest
+PASS 844x390: PAUSED on screen and clear of the buttons
+PASS 844x390: no page errors
+all passed
+(the same four checks pass at 320x568, 820x1180, 1440x900, 600x600 and 1920x600: 28 of 28.)
+```
+Contrast is WCAG's formula against the pause screen's backdrop over pure black and over pure white (the two extremes the scene can show behind it).
+
+`checks.js` (`sim/results/cc-checks-paused.log`): 39 PASS, `all passed`, exit 0.

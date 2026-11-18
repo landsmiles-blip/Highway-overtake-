@@ -1,0 +1,41 @@
+PASS long lines are only 13 and 335 (found 13,335)
+PASS game script still starts at line 338
+PASS level 1: a bus does not wreck a new player (mass 100 to 80)
+PASS level 2: a bus does not wreck a new player (mass 100 to 80)
+PASS level 5: before the first gate a bus is only a bump
+PASS level 5: test setup: car crashed before halfway
+PASS level 5: halfway through and far behind, a bus wrecks you
+PASS level 20: test setup: car crashed before halfway
+PASS level 20: smashing a bus costs real mass (largest hit 439, need 43720)
+PASS endless: levels 21, 30 and 31 use the layouts of 11, 20 and 11
+FAIL endless: level 21 starts and runs as level 21 with level 11's need ({"level":21,"state":"over","need":6530,"need11":6530})
+PASS endless: no page errors at level 21
+PASS 390x844: nothing off screen
+PASS 390x844: car clear of the buttons (left: none, centre: none)
+PASS 390x844: no page errors
+PASS 390x844: no outside requests
+PASS 844x390: nothing off screen
+PASS 844x390: car clear of the buttons (left: none, centre: none)
+PASS 844x390: no page errors
+PASS 844x390: no outside requests
+PASS 320x568: nothing off screen
+PASS 320x568: car clear of the buttons (left: none, centre: none)
+PASS 320x568: no page errors
+PASS 320x568: no outside requests
+PASS 820x1180: nothing off screen
+PASS 820x1180: car clear of the buttons (left: none, centre: none)
+PASS 820x1180: no page errors
+PASS 820x1180: no outside requests
+PASS 1440x900: nothing off screen
+PASS 1440x900: car clear of the buttons (left: none, centre: none)
+PASS 1440x900: no page errors
+PASS 1440x900: no outside requests
+PASS 600x600: nothing off screen
+PASS 600x600: car clear of the buttons (left: none, centre: none)
+PASS 600x600: no page errors
+PASS 600x600: no outside requests
+PASS 1920x600: nothing off screen
+PASS 1920x600: car clear of the buttons (left: none, centre: none)
+PASS 1920x600: no page errors
+PASS 1920x600: no outside requests
+1 FAILED
