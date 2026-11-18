@@ -444,6 +444,10 @@
   const Platform = {
     bridge: null,
     msg: function(m){ try { if (this.bridge) this.bridge.platform.sendMessage(m); } catch(e){} },
+    // The one telemetry adapter (Playgama telemetry guide): product events and performance_sample go out
+    // through Bridge's custom-event API. Names are fixed; the level goes in the data. The platform messages
+    // above are already counted by Bridge, so these names never repeat them.
+    track: function(name, data){ try { const b = this.bridge; if (b && b.analytics && b.analytics.send) b.analytics.send(name, data); } catch(e){} },
     // Interstitial at a natural pause (rules 2.1.2, 2.1.3). Bridge decides whether one shows and how
     // often; the game adds no timer. Sound and pause during the ad come from the handlers in load().
     ad: function(){ try { const b = this.bridge; if (b && b.advertisement.isInterstitialSupported) b.advertisement.showInterstitial(); } catch(e){} },
@@ -1600,6 +1604,14 @@
     };
   });
   function levelCfg(lv){ return LEVELS[Math.min(LEVELS.length - 1, Math.max(0, lv - 1))]; }
+  // Which of the 20 layouts a level plays (bounded, for telemetry's level_id).
+  function layoutSlot(lv){ return Math.min(LEVELS.length, Math.max(1, lv)); }
+  let attemptRevived = false;   // set by the second chance (idea A); telemetry keeps revived runs apart
+  function progressData(extra){
+    const d = { level_id: layoutSlot(level), step_index: level, revived: attemptRevived };
+    if (extra) for (const k in extra) d[k] = extra[k];
+    return d;
+  }
   let linesTaken = 0;       // gate lines taken so far this level
   function levelPace(cfg){ return Math.max(0.08, Math.min(1, (levelStartZ - player.z) / cfg.lengthZ)); }
   function multiLaneChance(lv){ return levelCfg(lv).multiLane; }
@@ -1775,7 +1787,8 @@
     }
     spawnBarricade();
     state = 'playing';
-    Snd.level(level); Platform.msg('level_started');
+    attemptRevived = false;
+    Snd.level(level); Platform.msg('level_started'); Platform.track('progression_started', progressData());
     updateHud(true);
     boostWrap.classList.remove('show');
   }
@@ -2578,7 +2591,7 @@
     const earned = 50 + Math.floor(over / 100);
     coins += earned;
     Snd.play('wall');
-    Platform.msg('level_completed');
+    Platform.msg('level_completed'); Platform.track('progression_completed', progressData());
     Platform.save(level >= LEVELS.length ? 1 : level + 1, coins, Quality.level);
     updateHud(true);
     punch(document.getElementById('coinBoard'));
@@ -2591,7 +2604,7 @@
     state = 'over';
     const cfg = levelCfg(level);
     Snd.play('crash');
-    Platform.msg('level_failed');
+    Platform.msg('level_failed'); Platform.track('progression_failed', progressData({ reason: reason === 'barricade' ? 'barricade' : 'crash' }));
     Platform.save(level, coins, Quality.level);
     shakeTime = 0.45;
     flashColor(false);
@@ -3221,9 +3234,40 @@
       if (state === 'playing' && !paused && fps < 38 && this.level < 3){ this.level++; this.apply(); }
     }
   };
+  // performance_sample (Playgama telemetry guide): frame times from active, visible, unpaused play only,
+  // one aggregated sample per 30 s of such play. A frame counts only if the frame before it was active too,
+  // so a pause, a hidden tab or a result screen never becomes one long frozen frame. Counts are per window.
+  const BUILD_VERSION = '1.1.0';
+  const Perf = {
+    ft: [], active: 0, start: 0, prevActive: false,
+    frame: function(now, rawMs){
+      const on = state === 'playing' && !paused && !document.hidden && overlay.style.display !== 'flex';
+      if (on && this.prevActive){
+        if (!this.ft.length && !this.active) this.start = now - rawMs;
+        this.ft.push(rawMs); this.active += rawMs;
+        if (this.active >= 30000) this.flush(now);
+      }
+      this.prevActive = on;
+    },
+    flush: function(now){
+      const f = this.ft.slice().sort(function(a, b){ return a - b; }), n = f.length;
+      const q = function(p){ return f[Math.min(n - 1, Math.floor(p * n))]; };
+      const over = function(ms){ let c = 0; for (let i = 0; i < n; i++) if (f[i] > ms) c++; return c; };
+      const r1 = function(x){ return Math.round(x * 10) / 10; };
+      Platform.track('performance_sample', {
+        target_fps: 60, window_ms: Math.round(now - this.start), active_ms: Math.round(this.active), frame_count: n,
+        fps_avg: r1(n * 1000 / this.active), fps_p10: r1(1000 / q(0.9)),
+        frame_time_p50_ms: r1(q(0.5)), frame_time_p95_ms: r1(q(0.95)), frame_time_p99_ms: r1(q(0.99)), frame_time_max_ms: r1(f[n - 1]),
+        frames_over_50ms: over(50), frames_over_100ms: over(100), frames_over_250ms: over(250), frames_over_500ms: over(500), frames_over_1000ms: over(1000),
+        build_version: BUILD_VERSION
+      });
+      this.ft = []; this.active = 0;
+    }
+  };
   function loop(){
     requestAnimationFrame(loop);
     const now = performance.now();
+    Perf.frame(now, now - lastTime);
     let dt = (now - lastTime) / 1000;
     lastTime = now;
     Quality.tick(Math.min(dt, 1));

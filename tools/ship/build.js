@@ -14,6 +14,9 @@ src = src.replace("const QS = new URLSearchParams(location.search);", "const QS 
 src = src.replace(/^\s*if\(!window\.__lineTakes\[g\.lineId\]\)\{\n[^\n]*\n[^\n]*\n\s*\}\n/m, '');
 src = src.replace(/^\s*window\.__lineTakes.*\n/gm, '').replace(/^\s*window\.__lastLine.*\n/gm, '');
 src = src.replace("window.__ghBooted = true;", '');
+// telemetry reports the shipped version (performance_sample build_version)
+if (!/const BUILD_VERSION = '[^']*';/.test(src)) throw new Error('BUILD_VERSION not found');
+src = src.replace(/const BUILD_VERSION = '[^']*';/, `const BUILD_VERSION = '${version}';`);
 // localStorage and sessionStorage: Playgama rule 3.2.1, progress only through Bridge storage
 for (const bad of ['window.__gh ', 'window.__lineTakes', 'window.__skipped', 'benchStart = ', 'fonts.googleapis', 'localStorage', 'sessionStorage']) {
   if (bad !== 'benchStart = ' && src.includes(bad)) throw new Error('left in ship build: ' + bad);

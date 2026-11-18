@@ -599,3 +599,39 @@ all passed
 
 - No new game code: Claude has not answered Letters 015 and 016 (Rule 11). Telemetry has Mumathai's yes and waits only for Claude.
 - No Playgama upload, Sandbox or traffic.
+
+# Part 6: Letter 017's order, built under falsification (Tony, 2026-11-18)
+
+Tony's orders: Popper's falsification (attack every claim, build only on what survives); build in Letter 017's order; real test output here before a step is marked done; local commit after each step; PAUSED fix: yes; Tony plays before Sandbox; no push.
+
+- [x] **S0 Letter 018** (ledger rev 49): three claims in Letter 017 refuted or unsourced against Playgama data (Bro You're Cooked had 33 sessions / 22 users / 503 level starts, not "7 plays"; 51 interstitials opened for 503 starts, about 0.10, with 179 failed; no source for "100 plays to leave Sandbox"); "re-publishing keeps saves" true only with a save version; a written refutation test for the level 20-21 step.
+
+## S1 Progression telemetry: done
+
+Change: `Platform.track` (one adapter, `bridge.analytics.send`); `progression_started` / `progression_completed` / `progression_failed` (reason `crash` or `barricade`) with `level_id` (layout slot 1-20), `step_index` (real level), `revived`; `performance_sample` per 30 s of active, visible, unpaused play with every required field; `BUILD_VERSION`, stamped by `tools/ship/build.js` with the build's version. The existing `sendMessage` calls are unchanged.
+
+`node tools/playtest/cc-telemetry-proof.js` (full log: `sim/results/cc-telemetry-proof.log`; the first run failed one check because my test cleared its event list after the level had started; fixed the test, not the game):
+```
+PASS Bridge (mock) exposes analytics.send
+PASS level 1: started then completed (progression_started, progression_completed)
+PASS one performance_sample in a level of about 35 s of play (1)
+PASS performance_sample has every required field
+PASS active_ms about 30 s (30006)
+PASS window_ms (35026) includes the 5 s pause, active_ms (30006) does not
+PASS the pause is not counted as a frozen frame (max frame 58.3 ms)
+PASS percentiles are in order
+PASS no performance_sample while the result screen is up
+PASS level 7: progression_failed with reason crash, level_id 7, step_index 7, revived false
+PASS level 14: progression_failed with reason barricade, level_id 14, step_index 14, revived false
+PASS event names are fixed snake_case, no numbers in names
+PASS level_id is within 1-20 and step_index is a whole number
+PASS no page errors
+all passed
+```
+Sample sent (headless Chrome, so 99 fps, not a phone figure): `{"target_fps":60,"window_ms":35026,"active_ms":30006,...,"frames_over_1000ms":0,"build_version":"1.1.0"}`.
+
+Ship build `node tools/ship/build.js 1.1.0`: URL scan as pinned, no localStorage, `const BUILD_VERSION = '1.1.0';` in `dist/index.html`.
+
+`checks.js` (`sim/results/cc-checks-telemetry.log`): 37 PASS, `all passed`, exit 0.
+
+Not proven here: a hidden tab is not tested directly; it goes through the same `pauseGame()` as the 5 s pause test (`visibilitychange` handler). Real Playgama receipt of the events is provable only after upload.
