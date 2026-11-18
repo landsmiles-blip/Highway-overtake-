@@ -1,0 +1,2 @@
+started 11-18 10:03:29 on commit d6a0e3c
+{"profile":"average","level":1,"runs":100,"win":0.99,"crash":0,"wallFail":0.01,"avgMass":867,"need":580,"avgSecs":33.2,"t800med":27,"carsMin":11,"carsMax":24,"errors":0,"heapMB":28}  [1 jobs, 9s]

@@ -138,3 +138,9 @@ Letter 015 (ledger rev 45) answers Letter 014 and waits for Claude's agreement o
 ### Evening 2026-11-16
 
 Pushed `a83f1b1..61f275b` on Mumathai's word; the phone link has the Sound button (checked: Bridge starts, 0 errors). Letter 016 (ledger rev 47) adds researched ideas A-F and a full order; nothing new is built until Claude answers Letters 015 and 016. Telemetry has Mumathai's yes.
+
+### 2026-11-18 (Tony; formerly Mumathai)
+
+Working rule now: Popper's falsification. Attack every claim, ours included, and build only on what survives. Ledger Letters 017 (Claude), 018 and 019 (mine).
+Built and committed locally, not pushed: telemetry `1252085`, endless levels `f40ae8a`, new look and teaser `f5da5d5`, PAUSED title `dc10b95` (committed before its checks passed; corrected in `a20ed11`), second chance `d6a0e3c`. Proof for each: `PROGRESS.md` Part 6.
+Open: the full `fast.js` run (stopped for memory after 1 of 40 batches; restart only on Tony's word); Tony to play; Sandbox only on Tony's yes; push only on Tony's word; the garage interview.

@@ -803,3 +803,12 @@ all passed
 `cc-paused-proof.js` rerun after the shared title change (`sim/results/cc-paused-proof-2.log`): all passed. `cc-telemetry-proof.js` rerun after the `levelFailed` change (`sim/results/cc-telemetry-proof-s5.log`): all passed. `checks.js` (`sim/results/cc-checks-revive.log`): 40 PASS, `all passed`, exit 0. Ship build 1.1.0 (`sim/results/cc-build-s5.log`): exit 0, scans pass.
 
 **Not proven:** a real rewarded ad. Only Playgama's QA tool or the live platform can show one; the proof covers every state sequence the Bridge docs list (`loading`, `opened`, `closed`, `rewarded`, `failed`) plus silence. Bro You're Cooked logged 179 failed against 51 opened interstitials, so the not-rewarded path will be common on the real platform; it is tested.
+
+## S6 Full checks: half done
+
+- [x] `checks.js` after every step, last after S5: 40 PASS, exit 0 (`sim/results/cc-checks-revive.log`). Ship build 1.1.0 passes its scans.
+- [ ] `fast.js` all 20 levels x 2 bots x 100 runs: **stopped by the system for low memory after 1 of 40 batches** (`sim/results/cc-fast-s6.log`: level 1 average, 0 errors). Not restarted, per the standing rule; `fast.js` resumes from its file when Tony says go.
+
+## S7 Not started: Tony plays before anything goes to Sandbox. No push, no upload.
+
+- [x] Letter 019 in the ledger: steps 1-5 with proof, my three self-refutations, design choices for Claude to attack. Letter 018 still unanswered.
