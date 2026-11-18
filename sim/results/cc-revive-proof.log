@@ -1,0 +1,28 @@
+PASS no rewarded ads: no offer, normal fail screen ({"offer":false,"fail":true,"shown":true,"state":"over","mass":385})
+PASS   events: progression_failed
+PASS ads available, crash in traffic: the offer appears, the attempt is not ended yet
+PASS   no progression_failed while the offer is up
+PASS ad watched to the end: driving again, overlay gone, size kept (385 -> 385)
+PASS second crash in the same attempt: no second offer, fail screen
+PASS   events: second_chance:rewarded, progression_failed:revived
+PASS one rewarded ad requested in the attempt
+PASS a new attempt (Try again / next level) can offer again
+PASS revived win is marked revived: second_chance:rewarded, progression_completed:revived
+PASS ad closed before the end: no reward, normal fail screen
+PASS   events: second_chance:not_rewarded, progression_failed
+PASS ad failed to load: no reward, normal fail screen
+PASS   events: second_chance:not_rewarded, progression_failed
+PASS no answer from the ad: no reward, normal fail screen
+PASS   events: second_chance:not_rewarded, progression_failed
+PASS No thanks: normal fail screen
+PASS   events: second_chance:declined, progression_failed
+PASS lost at the wall with ads available: no offer (a revive cannot add size)
+PASS no page errors
+PASS 390x844: offer title, text and both buttons on screen, not overlapping, boot title gone, no errors
+PASS 844x390: offer title, text and both buttons on screen, not overlapping, boot title gone, no errors
+PASS 320x568: offer title, text and both buttons on screen, not overlapping, boot title gone, no errors
+PASS 820x1180: offer title, text and both buttons on screen, not overlapping, boot title gone, no errors
+PASS 1440x900: offer title, text and both buttons on screen, not overlapping, boot title gone, no errors
+PASS 600x600: offer title, text and both buttons on screen, not overlapping, boot title gone, no errors
+PASS 1920x600: offer title, text and both buttons on screen, not overlapping, boot title gone, no errors
+all passed

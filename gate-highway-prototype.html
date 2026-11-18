@@ -180,7 +180,7 @@
   #resultRow{
     display:flex; gap:10px; margin-bottom:22px; flex-wrap:wrap; justify-content:center;
   }
-  #resultRow .board{ background:rgba(244,239,228,0.05); } #teaser{ font-family:'Orbitron',sans-serif; font-weight:700; color:var(--amber); font-size:calc(13px * var(--ui-scale)); letter-spacing:1px; margin:-8px 0 18px; text-shadow:0 0 10px rgba(255,179,71,.45); }
+  #resultRow .board{ background:rgba(244,239,228,0.05); } #declineBtn{ margin-top:14px; background:none; color:var(--dim); box-shadow:none; border:1px solid rgba(244,239,228,.25); font-size:calc(12px * var(--ui-scale)); } #reviveBtn:disabled,#declineBtn:disabled{ opacity:.6; } #teaser{ font-family:'Orbitron',sans-serif; font-weight:700; color:var(--amber); font-size:calc(13px * var(--ui-scale)); letter-spacing:1px; margin:-8px 0 18px; text-shadow:0 0 10px rgba(255,179,71,.45); }
   button{
     font-family:'Orbitron',sans-serif;
     font-size:calc(14px * var(--ui-scale));
@@ -454,6 +454,22 @@
     // Interstitial at a natural pause (rules 2.1.2, 2.1.3). Bridge decides whether one shows and how
     // often; the game adds no timer. Sound and pause during the ad come from the handlers in load().
     ad: function(){ try { const b = this.bridge; if (b && b.advertisement.isInterstitialSupported) b.advertisement.showInterstitial(); } catch(e){} },
+    // Rewarded ad (rules 2.2.1-2.2.5): offered only when the platform supports it; the reward is granted only in the
+    // `rewarded` state; `closed` or `failed` without it, an error, or no answer at all within 8 s ends with done(false),
+    // so the game always goes on (rules 1.7.2, 2.1.7). Pause and sound during the ad come from the handlers in load().
+    canRewarded: function(){ try { const b = this.bridge; return !!(b && b.advertisement.isRewardedSupported); } catch(e){ return false; } },
+    rewarded: function(done){
+      const self = this, job = { granted:false, done:done, quiet:null };
+      const finish = function(){ if (self.pending !== job) return; self.pending = null; clearTimeout(job.quiet); job.done(job.granted); };
+      job.finish = finish; job.quiet = setTimeout(finish, 8000); this.pending = job;
+      try { this.bridge.advertisement.showRewarded(); } catch(e){ finish(); }
+    },
+    onRewarded: function(st){
+      const job = this.pending; if (!job) return;
+      clearTimeout(job.quiet);                       // the ad answered: no more 8 s limit while it plays
+      if (st === 'rewarded') job.granted = true;
+      if (st === 'closed' || st === 'failed') job.finish();
+    },
     save: function(lv, c, q){
       try {
         // lateLoad: Bridge answered after the wait, so the game started without the saved progress; saving now
@@ -476,6 +492,7 @@
         if (!b.platform.isAudioEnabled) Snd.mute(true);
         b.platform.on(b.EVENT_NAME.AUDIO_STATE_CHANGED, function(on){ Snd.mute(!on); });
         b.platform.on(b.EVENT_NAME.PAUSE_STATE_CHANGED, function(p){ Snd.hold(p); if (p) window.GH.pause(); else window.GH.resume(); });
+        try { b.advertisement.on(b.EVENT_NAME.REWARDED_STATE_CHANGED, function(st){ self.onRewarded(st); }); } catch(e){}
         return b.storage.get(['gh_level','gh_coins','gh_quality']);
       });
       return Promise.race([work, timeout]).then(function(d){ if (d === 'late'){ self.lateLoad = true; return fromLocal(); } return d; }).catch(fromLocal);
@@ -1946,14 +1963,16 @@
   const pauseScreen = document.getElementById('pauseScreen');
   let paused = false;
 
+  // The boot title fades for about 3 s. Any screen that opens on top of the game ends it at once, so the title
+  // never sits under PAUSED, WRECKED or the second-chance offer (rule 1.6.4).
+  function dropSplashNow(){ const ts = document.getElementById('titleSplash'); if (ts) ts.remove(); }
   function pauseGame(){
     if(paused || state !== 'playing') return;
     paused = true;
     gasHeld = false; brakeHeld = false; dragging = false;
     btnGas.classList.remove('held'); btnBrake.classList.remove('held');
     pauseScreen.classList.add('show');
-    // the fading GATE HIGHWAY title sat under PAUSED on wide screens: a pause ends it at once
-    const ts = document.getElementById('titleSplash'); if (ts) ts.remove();
+    dropSplashNow();   // the fading GATE HIGHWAY title sat under PAUSED on wide screens
     Snd.hold(true); Platform.msg('level_paused');
   }
   function resumeGame(){
@@ -2631,15 +2650,51 @@
     smash.earned = earned;
   }
 
+  // Second chance (idea A, Letters 016-017): after a crash in traffic, once per attempt, a rewarded ad lets the player
+  // drive on from where they crashed with their size kept. Never at the wall: a revive there cannot add the missing size.
   function levelFailed(reason){
     if(state !== 'playing') return;
     state = 'over';
-    const cfg = levelCfg(level);
     Snd.play('crash');
-    Platform.msg('level_failed'); Platform.track('progression_failed', progressData({ reason: reason === 'barricade' ? 'barricade' : 'crash' }));
-    Platform.save(level, coins, Quality.level);
     shakeTime = 0.45;
     flashColor(false);
+    dropSplashNow();
+    if (reason !== 'barricade' && !attemptRevived && Platform.canRewarded()){ setTimeout(offerSecondChance, 320); return; }
+    endAttempt(reason, 320);
+  }
+  function offerSecondChance(){
+    const cfg = levelCfg(level);
+    overlay.innerHTML =
+      '<h1 class="glow-text" style="color:var(--red);">WRECKED</h1>' +
+      '<div class="sub">Bar filled ' + Math.min(99, Math.floor(mass / cfg.need * 100)) + '%. Watch an ad to keep driving from here, at the same size.</div>' +
+      '<button id="reviveBtn">&#9654; Watch ad: keep driving</button>' +
+      '<button id="declineBtn">No thanks</button>';
+    overlay.style.display = 'flex';
+    const yes = document.getElementById('reviveBtn'), no = document.getElementById('declineBtn');
+    no.addEventListener('click', function(){ Snd.play('click'); Platform.track('second_chance', progressData({ result:'declined' })); endAttempt('crash', 0); });
+    yes.addEventListener('click', function(){
+      Snd.play('click'); yes.disabled = true; no.disabled = true; yes.textContent = 'Loading ad...';
+      Platform.rewarded(function(granted){
+        if (granted){ Platform.track('second_chance', progressData({ result:'rewarded' })); attemptRevived = true; revive(); }
+        else { Platform.track('second_chance', progressData({ result:'not_rewarded' })); endAttempt('crash', 0); }
+      });
+    });
+  }
+  function revive(){
+    // clear the road around the car so the run does not end again on the same traffic; size and progress are kept
+    for (let i = obstacles.length - 1; i >= 0; i--){
+      const o = obstacles[i];
+      if (o.z < player.z + 12 && o.z > player.z - 40){ releaseVehicle(o.kindDef, o.group); obstacles.splice(i, 1); }
+    }
+    overlay.style.display = 'none';
+    lastTime = performance.now();
+    state = 'playing';
+    showToast('KEEP DRIVING!');
+  }
+  function endAttempt(reason, delay){
+    const cfg = levelCfg(level);
+    Platform.msg('level_failed'); Platform.track('progression_failed', progressData({ reason: reason === 'barricade' ? 'barricade' : 'crash' }));
+    Platform.save(level, coins, Quality.level);
     setTimeout(function(){
       const head = reason === 'barricade' ? 'NOT BIG ENOUGH' : 'WRECKED';
       const line = reason === 'barricade'
@@ -2659,7 +2714,7 @@
         startLevel();
         overlay.style.display = 'none';
       });
-    }, 320);
+    }, delay);
   }
 
   // ============================================================

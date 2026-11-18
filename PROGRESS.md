@@ -756,3 +756,50 @@ Contrast is WCAG's formula against the pause screen's backdrop over pure black a
 `checks.js` (`sim/results/cc-checks-paused.log`): **39 PASS, 1 FAILED, exit 1.** This line first said "all passed": my command committed S4 (`dc10b95`) without stopping on the failure, and wrote the wrong result here. Corrected below; the S4 commit was made before its checks passed, which breaks Tony's rule, and is recorded as such.
 
 The failure: `endless: level 21 starts and runs ... {"state":"over"}`: my S2 check had no guard, and the unsteered test car crashed in the first 3 s. Tested before blaming the test: 20 starts each, crash within 3 s at level 11: 0 of 20, at level 21: 1 of 20 (`sim/results/cc-crash3s-11-vs-21.log`), a rare crash at the same rate, configs proven equal in S2. Fix: the same guard Letter 011 gave the level-20 check (mass at twice the need). Rerun (`sim/results/cc-checks-paused-rerun.log`): 40 PASS, `all passed`, exit 0.
+
+## S5 Second chance (idea A, Claude's conditions a-d): done, except the real ad
+
+Change:
+- After a crash in traffic, if `isRewardedSupported`, a WRECKED screen offers "Watch ad: keep driving" and "No thanks" (rule 2.2.1: the button says it is an ad and what it gives; 2.2.2: always declinable).
+- Once per attempt (2.2.4). Never at the wall (condition a: a revive there cannot add size).
+- Reward only in the `rewarded` state (2.2.5). `closed` or `failed` without it, or no answer within 8 s, goes to the normal fail screen, so nothing can get stuck (1.7.2, 2.1.7).
+- On a revive: the road from 12 units behind to 40 ahead is cleared, and size and progress are kept.
+- Telemetry (condition d): `progression_failed` is sent once, when the attempt really ends (not at the crash that led to the offer); a revived attempt's result carries `revived: true`; `second_chance` records `rewarded`, `not_rewarded` or `declined` (bounded; answers "do players take it?").
+- Also: any crash now clears the fading boot title at once. The pictures showed GATE HIGHWAY under WRECKED at 844x390 (rule 1.6.4), as it was under PAUSED; this was true of the old fail screen too.
+
+My mistakes on the way: the first proof run caught `second_chance: rewarded` sent with `revived: true` (the game set the flag before sending; the offer is always on an attempt not yet revived, so it now sends first). The boot-title overlap was found in the pictures after all checks had passed.
+
+`node tools/playtest/cc-revive-proof.js sim/results/revive` (`sim/results/cc-revive-proof.log`; offer pictures at all 7 frames in `sim/results/revive/`). Bridge's mock has no rewarded ads, so the proof wraps Bridge's `advertisement` getter and plays each ad outcome into the handler the game registered:
+```
+PASS no rewarded ads: no offer, normal fail screen ({"offer":false,"fail":true,"shown":true,"state":"over","mass":385})
+PASS   events: progression_failed
+PASS ads available, crash in traffic: the offer appears, the attempt is not ended yet
+PASS   no progression_failed while the offer is up
+PASS ad watched to the end: driving again, overlay gone, size kept (385 -> 385)
+PASS second crash in the same attempt: no second offer, fail screen
+PASS   events: second_chance:rewarded, progression_failed:revived
+PASS one rewarded ad requested in the attempt
+PASS a new attempt (Try again / next level) can offer again
+PASS revived win is marked revived: second_chance:rewarded, progression_completed:revived
+PASS ad closed before the end: no reward, normal fail screen
+PASS   events: second_chance:not_rewarded, progression_failed
+PASS ad failed to load: no reward, normal fail screen
+PASS   events: second_chance:not_rewarded, progression_failed
+PASS no answer from the ad: no reward, normal fail screen
+PASS   events: second_chance:not_rewarded, progression_failed
+PASS No thanks: normal fail screen
+PASS   events: second_chance:declined, progression_failed
+PASS lost at the wall with ads available: no offer (a revive cannot add size)
+PASS no page errors
+PASS 390x844: offer title, text and both buttons on screen, not overlapping, boot title gone, no errors
+PASS 844x390: offer title, text and both buttons on screen, not overlapping, boot title gone, no errors
+PASS 320x568: offer title, text and both buttons on screen, not overlapping, boot title gone, no errors
+PASS 820x1180: offer title, text and both buttons on screen, not overlapping, boot title gone, no errors
+PASS 1440x900: offer title, text and both buttons on screen, not overlapping, boot title gone, no errors
+PASS 600x600: offer title, text and both buttons on screen, not overlapping, boot title gone, no errors
+PASS 1920x600: offer title, text and both buttons on screen, not overlapping, boot title gone, no errors
+all passed
+```
+`cc-paused-proof.js` rerun after the shared title change (`sim/results/cc-paused-proof-2.log`): all passed. `cc-telemetry-proof.js` rerun after the `levelFailed` change (`sim/results/cc-telemetry-proof-s5.log`): all passed. `checks.js` (`sim/results/cc-checks-revive.log`): 40 PASS, `all passed`, exit 0. Ship build 1.1.0 (`sim/results/cc-build-s5.log`): exit 0, scans pass.
+
+**Not proven:** a real rewarded ad. Only Playgama's QA tool or the live platform can show one; the proof covers every state sequence the Bridge docs list (`loading`, `opened`, `closed`, `rewarded`, `failed`) plus silence. Bro You're Cooked logged 179 failed against 51 opened interstitials, so the not-rewarded path will be common on the real platform; it is tested.

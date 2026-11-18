@@ -1,0 +1,9 @@
+urls in index.html: www.w3.org   (as pinned)
+urls in licenses/AUDIO-SOURCES.md: freesound.org, kenney.nl   (not pinned)
+urls in licenses/LICENSE-playgama-bridge.txt: fsf.org   (not pinned)
+urls in licenses/OFL-Orbitron.txt: github.com, scripts.sil.org   (not pinned)
+urls in licenses/OFL-Rajdhani.txt: scripts.sil.org   (not pinned)
+urls in playgama-bridge-config.json: none   (not pinned)
+urls in playgama-bridge.js: api.playgama.com, assets.msn.com, cdn.discordapp.com, cdn.xsolla.net, cdn.y8.com, connect.facebook.net, discord.com, fonts.googleapis.com, fonts.gstatic.com, game-cdn.poki.com, gamepush.com, games.playgama.com, gtg.samsungapps.com, html5.api.gamedistribution.com, jiogames.akamaized.net, lagged.com, pagead2.googlesyndication.com, playgama.com, sad.adsgram.ai, sdk.crazygames.com, storage.googleapis.com, store.xsolla.com, telegram.org, unpkg.com, vk.com, www.hippoobox.com, www.w3.org   (as pinned)
+dist 4.76 MB; zip 3.88 MB
+stripped 7900 bytes of test code
